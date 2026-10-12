@@ -14,27 +14,31 @@
 </head>
 <body class="dashboard-page">
     <div class="dashboard-layout">
-        <aside class="offcanvas-lg offcanvas-start admin-sidebar" tabindex="-1" id="adminSidebar" aria-labelledby="sidebarBrand">
+        <aside class="admin-sidebar" id="adminSidebar" aria-labelledby="sidebarBrand">
             <div class="sidebar-head">
                 <a class="brand-lockup" id="sidebarBrand" href="{{ route('admin.dashboard') }}">
                     <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
                     <span class="brand-wordmark"><strong>TATA</strong><span>PRAVESH</span></span>
                 </a>
-                <button class="btn-close d-lg-none" type="button" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebar" aria-label="Close menu"></button>
+                <button class="btn-close d-lg-none" type="button" data-sidebar-close="adminSidebar" aria-label="Close menu"></button>
             </div>
 
             <div class="sidebar-label">WORKSPACE</div>
             <nav class="sidebar-nav" aria-label="Main navigation">
-                <a class="sidebar-link is-active" href="#overview" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebar">
+                <a class="sidebar-link is-active" href="#overview">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="8" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="15" width="7" height="6" rx="1.5"></rect></svg>
                     <span>Overview</span>
                 </a>
-                <a class="sidebar-link" href="#directory" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebar">
+                <a class="sidebar-link" href="#directory">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.8 20c.4-3.3 2.5-5 6.2-5s5.8 1.7 6.2 5M17 5.5a3.5 3.5 0 0 1 0 6.8m.8 2.8c2.2.6 3.4 2.1 3.5 4.9"></path></svg>
                     <span>Account directory</span>
                     <span class="nav-count">{{ $totalUsers }}</span>
                 </a>
-                <a class="sidebar-link" href="#security" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebar">
+                <a class="sidebar-link" href="{{ route('admin.roles.index') }}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 4.5 7v5.6c0 3.8 2.6 6.9 7.5 9.9 4.9-3 7.5-6.1 7.5-9.9V7L12 3.5Zm-1.5 7.8 2.1 2.1 4.2-4.2"></path></svg>
+                    <span>Role management</span>
+                </a>
+                <a class="sidebar-link" href="#security">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v5.6c0 4.2-2.9 7.5-7 9.4-4.1-1.9-7-5.2-7-9.4V6l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>
                     <span>Security</span>
                 </a>
@@ -58,7 +62,7 @@
 
         <div class="dashboard-main">
             <header class="topbar">
-                <button class="btn sidebar-toggle d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#adminSidebar" aria-controls="adminSidebar" aria-label="Open navigation">
+                <button class="btn sidebar-toggle d-lg-none" type="button" data-sidebar-toggle="adminSidebar" aria-controls="adminSidebar" aria-label="Open navigation">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
                 </button>
                 <div class="breadcrumb-label"><span>Workspace</span><span class="breadcrumb-slash">/</span><strong>Overview</strong></div>
@@ -158,11 +162,16 @@
                                     <tr data-account-row>
                                         <td>
                                             <div class="account-cell">
-                                                <span class="account-avatar {{ $account->is_admin ? 'avatar-admin' : '' }}">{{ mb_strtoupper(mb_substr($account->name, 0, 1)) }}</span>
-                                                <span class="account-copy"><strong>{{ $account->name }}</strong><small>{{ $account->is_admin ? 'Administrator account' : 'Workspace member' }}</small></span>
+                                                <span class="account-avatar {{ $account->isAdmin() ? 'avatar-admin' : '' }}">{{ mb_strtoupper(mb_substr($account->name, 0, 1)) }}</span>
+                                                <span class="account-copy"><strong>{{ $account->name }}</strong><small>{{ $account->isAdmin() ? 'Administrator account' : 'Workspace member' }}</small></span>
                                             </div>
                                         </td>
-                                        <td><span class="role-pill {{ $account->is_admin ? 'role-admin' : 'role-member' }}"><span></span>{{ $account->is_admin ? 'Administrator' : 'Member' }}</span></td>
+                                        <td>
+                                            <span class="role-pill {{ $account->isAdmin() ? 'role-admin' : 'role-member' }}">
+                                                <span></span>
+                                                {{ $account->getRoleNames()->first() ?: ($account->isAdmin() ? 'Administrator' : 'Member') }}
+                                            </span>
+                                        </td>
                                         <td class="date-cell">{{ $account->created_at?->format('M d, Y') ?? '—' }}</td>
                                         <td class="email-cell">{{ $account->email }}</td>
                                     </tr>

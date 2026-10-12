@@ -18,15 +18,21 @@ class DashboardController extends Controller
             ->groupBy(fn (User $user) => $user->created_at->format('Y-m'))
             ->map->count();
 
+        $totalUsers = User::count();
+        $adminCount = User::query()
+            ->where('is_admin', true)
+            ->orWhereHas('roles', fn ($query) => $query->whereIn('name', ['super-admin', 'admin']))
+            ->count();
+
         $months = collect(range(0, 5))
             ->map(fn (int $offset) => $startOfPeriod->copy()->addMonths($offset));
 
         return view('admin.dashboard', [
             'user' => request()->user(),
-            'totalUsers' => User::count(),
-            'adminCount' => User::where('is_admin', true)->count(),
-            'memberCount' => User::where('is_admin', false)->count(),
-            'users' => User::query()->latest()->paginate(8),
+            'totalUsers' => $totalUsers,
+            'adminCount' => $adminCount,
+            'memberCount' => max($totalUsers - $adminCount, 0),
+            'users' => User::query()->with('roles')->latest()->paginate(8),
             'chartLabels' => $months->map(fn (Carbon $month) => $month->format('M'))->all(),
             'chartValues' => $months->map(
                 fn (Carbon $month) => $registrationsByMonth->get($month->format('Y-m'), 0)

@@ -1,4 +1,42 @@
 $(function () {
+    const $sidebar = $('.admin-sidebar');
+    const $sidebarToggle = $('[data-sidebar-toggle]');
+    const $sidebarClose = $('[data-sidebar-close]');
+
+    if ($sidebar.length && $sidebarToggle.length) {
+        const closeSidebar = function () {
+            $sidebar.removeClass('is-open');
+        };
+
+        $sidebarToggle.on('click', function () {
+            const target = $(this).attr('data-sidebar-toggle');
+            const $targetSidebar = $('#' + target);
+
+            if ($targetSidebar.length) {
+                $targetSidebar.toggleClass('is-open');
+            }
+        });
+
+        $sidebarClose.on('click', closeSidebar);
+
+        $('.sidebar-link').on('click', function (event) {
+            const href = $(this).attr('href') || '';
+
+            if (href.startsWith('#')) {
+                const $target = $(href);
+
+                if ($target.length) {
+                    event.preventDefault();
+                    $target[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            }
+
+            $('.sidebar-link').removeClass('is-active');
+            $(this).addClass('is-active');
+            closeSidebar();
+        });
+    }
+
     const $loginForm = $('#adminLoginForm');
 
     if ($loginForm.length) {

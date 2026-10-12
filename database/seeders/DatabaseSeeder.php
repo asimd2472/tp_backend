@@ -3,8 +3,9 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-// use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,12 +14,40 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $permissions = [
+            'manage_users',
+            'manage_roles',
+            'manage_settings',
+            'view_dashboard',
+        ];
 
-        User::factory()->create([
+        foreach ($permissions as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'web',
+            ]);
+        }
+
+        $superAdmin = Role::firstOrCreate([
+            'name' => 'super-admin',
+            'guard_name' => 'web',
+        ]);
+
+        $manager = Role::firstOrCreate([
+            'name' => 'manager',
+            'guard_name' => 'web',
+        ]);
+
+        $superAdmin->syncPermissions(Permission::all());
+        $manager->syncPermissions(['manage_users', 'view_dashboard']);
+
+        $admin = User::factory()->create([
             'name' => 'Admin User',
             'email' => 'admin@gmail.com',
-            'password' => bcrypt('123456'),
+            'password' => '123456',
+            'is_admin' => true,
         ]);
+
+        $admin->assignRole($superAdmin);
     }
 }

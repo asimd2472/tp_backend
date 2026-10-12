@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class AdminAuthenticationTest extends TestCase
@@ -70,5 +71,36 @@ class AdminAuthenticationTest extends TestCase
             ->assertRedirect(route('admin.login'));
 
         $this->assertGuest();
+    }
+
+    public function test_user_with_role_can_access_admin_dashboard(): void
+    {
+        $role = Role::create(['name' => 'super-admin', 'guard_name' => 'web']);
+        $admin = User::factory()->create([
+            'email' => 'role.admin@example.com',
+            'password' => 'a-secure-password',
+            'is_admin' => false,
+        ]);
+        $admin->assignRole($role);
+
+        $this->postJson(route('admin.login.store'), [
+            'email' => $admin->email,
+            'password' => 'a-secure-password',
+        ])
+            ->assertOk()
+            ->assertJsonPath('redirect', route('admin.dashboard'));
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Account directory');
+    }
+
+    public function test_role_management_screen_is_available_for_admins(): void
+    {
+        $this->actingAs(User::factory()->admin()->create())
+            ->get(route('admin.roles.index'))
+            ->assertOk()
+            ->assertSee('Role management')
+            ->assertSee('Create Role');
     }
 }
