@@ -99,6 +99,41 @@ class FrenchDoorManagementTest extends TestCase
         $this->assertArrayHasKey('image_url', $shade);
     }
 
+    public function test_product_api_returns_a_frontend_friendly_response_without_authentication(): void
+    {
+        $response = $this->getJson(route('api.product.french-door'));
+
+        $response->assertOk()
+            ->assertJsonStructure([
+                'success',
+                'product' => ['name', 'slug'],
+                'designs' => [
+                    '*' => [
+                        'id',
+                        'name',
+                        'is_default',
+                        'shades' => [
+                            '*' => ['id', 'name', 'color', 'image_url', 'is_default'],
+                        ],
+                    ],
+                ],
+                'sizes' => [
+                    '*' => ['id', 'width_mm', 'height_mm', 'label', 'is_default'],
+                ],
+                'defaults' => ['design_id', 'shade_id', 'size_id'],
+            ])
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('product.slug', ProductOption::PRODUCT_SLUG);
+
+        $payload = $response->json();
+        $design = collect($payload['designs'])->firstWhere('id', $payload['defaults']['design_id']);
+        $shade = collect($design['shades'])->firstWhere('id', $payload['defaults']['shade_id']);
+
+        $this->assertTrue($design['is_default']);
+        $this->assertTrue($shade['is_default']);
+        $this->assertNotNull($payload['defaults']['size_id']);
+    }
+
     public function test_admin_can_replace_and_remove_a_shade_image(): void
     {
         Storage::fake('public');
