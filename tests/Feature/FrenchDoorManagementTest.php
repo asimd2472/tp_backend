@@ -99,6 +99,14 @@ class FrenchDoorManagementTest extends TestCase
         $this->assertArrayHasKey('image_url', $shade);
     }
 
+    public function test_public_uploads_use_direct_urls_without_storage_symlink(): void
+    {
+        $url = Storage::disk('public')->url('french-door/shades/sample.png');
+
+        $this->assertStringContainsString('/uploads/', $url);
+        $this->assertStringNotContainsString('/storage/', $url);
+    }
+
     public function test_product_api_returns_a_frontend_friendly_response_without_authentication(): void
     {
         $response = $this->getJson(route('api.product.french-door'));
