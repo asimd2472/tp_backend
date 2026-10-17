@@ -166,7 +166,7 @@
                                             <span class="shade-swatch" style="--shade-color: {{ $shade->color_hex ?: '#e8ecec' }}" aria-hidden="true"></span>
                                             <div class="shade-image-preview">
                                                 @if ($shade->image_path)
-                                                    <img src="{{ asset('storage/'.$shade->image_path) }}" alt="{{ $shade->name }} product">
+                                                    <img src="{{ asset('uploads/' . ltrim($shade->image_path, '/')) }}" alt="{{ $shade->name }} product">
                                                 @else
                                                     <span aria-hidden="true">Add<br>photo</span>
                                                 @endif

@@ -24,7 +24,7 @@ class FrenchDoorOptionsController extends Controller
                     'id' => $shade->id,
                     'name' => $shade->name,
                     'color' => $shade->color_hex,
-                    'image_url' => $shade->image_path ? Storage::disk('public')->url($shade->image_path) : null,
+                    'image_url' => $shade->image_path ? asset('uploads/' . ltrim($shade->image_path, '/')) : null,
                     'is_default' => $shade->is_default,
                 ])->values(),
             ])->values();

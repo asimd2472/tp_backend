@@ -44,7 +44,7 @@ class ProductController extends Controller
                         'name' => $shade->name,
                         'color' => $shade->color_hex,
                         'image_url' => $shade->image_path
-                            ? Storage::disk('public')->url($shade->image_path)
+                            ? asset('uploads/' . ltrim($shade->image_path, '/'))
                             : null,
                         'is_default' => $shade->is_default,
                     ])
