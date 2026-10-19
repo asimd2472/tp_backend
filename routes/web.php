@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FrenchDoorController;
+use App\Http\Controllers\Admin\ProductController;
+use App\Http\Controllers\Admin\ProductImportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserRoleController;
 use Illuminate\Support\Facades\Route;
@@ -17,6 +19,9 @@ Route::post('/admin/login', [AdminAuthController::class, 'store'])
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::resource('roles', RoleController::class)->except(['show']);
+    Route::resource('products', ProductController::class)->except(['show']);
+    Route::get('/products/import', [ProductImportController::class, 'index'])->name('products.import.index');
+    Route::post('/products/import', [ProductImportController::class, 'store'])->name('products.import.store');
     Route::get('/products/french-door', [FrenchDoorController::class, 'index'])->name('products.french-door.index');
     Route::post('/products/french-door/options', [FrenchDoorController::class, 'store'])->name('products.french-door.options.store');
     Route::put('/products/french-door/options/{option}', [FrenchDoorController::class, 'update'])->name('products.french-door.options.update');
