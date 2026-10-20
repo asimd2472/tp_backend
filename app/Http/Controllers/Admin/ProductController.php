@@ -67,7 +67,8 @@ class ProductController extends Controller
                 $product->update(['main_image' => $request->file('main_image')->store('products', 'public')]);
             }
 
-            $this->syncModels($product, $request->input('models', $request->input('designs', [])));
+            $models = $request->all()['models'] ?? $request->input('models', []);
+            $this->syncModels($product, $models);
 
             return $product;
         });
@@ -127,7 +128,8 @@ class ProductController extends Controller
             }
 
             $product->update($data);
-            $this->syncModels($product, $request->input('models', $request->input('designs', [])));
+            $models = $request->all()['models'] ?? $request->input('models', []);
+            $this->syncModels($product, $models);
         });
 
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
@@ -224,7 +226,11 @@ class ProductController extends Controller
             ]);
 
             if (isset($modelData['main_image']) && $modelData['main_image'] instanceof \Illuminate\Http\UploadedFile) {
-                $model->main_image = $modelData['main_image']->store('products/models', 'public');
+                if ($model->main_image) {
+                    Storage::disk('public')->delete($model->main_image);
+                }
+
+                $model->main_image = $modelData['main_image']->store('model', 'public');
             }
 
             $model->save();

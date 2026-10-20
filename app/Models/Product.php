@@ -54,7 +54,7 @@ class Product extends Model
             return null;
         }
 
-        return str_starts_with($this->main_image, 'http') ? $this->main_image : asset('storage/'.$this->main_image);
+        return str_starts_with($this->main_image, 'http') ? $this->main_image : asset('uploads/'.$this->main_image);
     }
 
     public function scopeActive($query)

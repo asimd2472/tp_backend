@@ -50,6 +50,11 @@ class ProductModel extends Model
             return null;
         }
 
-        return str_starts_with($this->main_image, 'http') ? $this->main_image : asset('storage/'.$this->main_image);
+        return str_starts_with($this->main_image, 'http') ? $this->main_image : asset('uploads/'.$this->main_image);
+    }
+
+    public function getMainImageUrlAttribute(): ?string
+    {
+        return $this->thumbnail_url;
     }
 }

@@ -96,43 +96,62 @@
 
             <div id="model-list">
                 @forelse ($models as $model)
-                    <div class="border rounded p-3 mb-3 model-block">
-                        <input type="hidden" name="models[{{ $loop->index }}][id]" value="{{ $model->id }}">
-                        <div class="row g-3 align-items-center mb-3">
-                            <div class="col-md-10">
-                                <label class="form-label">Model name</label>
-                                <input type="text" name="models[{{ $loop->index }}][name]" class="form-control" value="{{ $model->name }}" required>
-                            </div>
-                            <div class="col-md-2 text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
-                            </div>
-                        </div>
+                    <details class="border rounded p-3 mb-3 model-block" {{ $loop->first ? 'open' : '' }}>
+                        <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer list-unstyled">
+                            <span class="fw-semibold">{{ $model->name ?: 'New model' }}</span>
+                            <span class="text-muted small">Toggle</span>
+                        </summary>
 
-                        <div class="design-list">
-                            @forelse ($model->designs as $design)
-                                <details class="border rounded p-3 mb-2 design-block" {{ $loop->first ? 'open' : '' }}>
-                                    <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer">
-                                        <span class="fw-semibold">{{ $design->name ?: 'New design' }}</span>
-                                        <span class="text-muted small">Toggle</span>
-                                    </summary>
-                                    <div class="mt-3">
-                                        <div class="row g-3 align-items-center">
-                                            <div class="col-md-4">
-                                                <label class="form-label">Design name</label>
-                                                <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][name]" class="form-control" value="{{ $design->name }}" required>
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label">Code</label>
-                                                <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][code]" class="form-control" value="{{ $design->code }}">
-                                            </div>
-                                            <div class="col-md-3">
-                                                <label class="form-label">Thumbnail</label>
-                                                <input type="file" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
-                                            </div>
-                                            <div class="col-md-2 text-end">
-                                                <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
-                                            </div>
+                        <div class="mt-3">
+                            <input type="hidden" name="models[{{ $loop->index }}][id]" value="{{ $model->id }}">
+                            <div class="row g-3 align-items-center mb-3">
+                                <div class="col-md-5">
+                                    <label class="form-label">Model name</label>
+                                    <input type="text" name="models[{{ $loop->index }}][name]" class="form-control" value="{{ $model->name }}" required>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Model image</label>
+                                    @if ($model->main_image)
+                                        <div class="mb-2">
+                                            <img src="{{ $model->main_image_url ?? asset('uploads/'.$model->main_image) }}" class="img-fluid rounded model-preview" style="max-height: 80px;" alt="{{ $model->name }}">
                                         </div>
+                                    @else
+                                        <div class="mb-2 d-none">
+                                            <img src="" class="img-fluid rounded model-preview" style="max-height: 80px;" alt="Preview">
+                                        </div>
+                                    @endif
+                                    <input type="file" name="models[{{ $loop->index }}][main_image]" class="form-control model-image-input" accept="image/jpeg,image/png,image/webp">
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
+                                </div>
+                            </div>
+
+                            <div class="design-list">
+                                @forelse ($model->designs as $design)
+                                    <details class="border rounded p-3 mb-2 design-block" {{ $loop->first ? 'open' : '' }}>
+                                        <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer list-unstyled">
+                                            <span class="fw-semibold">{{ $design->name ?: 'New design' }}</span>
+                                            <span class="text-muted small">Toggle</span>
+                                        </summary>
+                                        <div class="mt-3">
+                                            <div class="row g-3 align-items-center">
+                                                <div class="col-md-4">
+                                                    <label class="form-label">Design name</label>
+                                                    <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][name]" class="form-control" value="{{ $design->name }}" required>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Code</label>
+                                                    <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][code]" class="form-control" value="{{ $design->code }}">
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <label class="form-label">Thumbnail</label>
+                                                    <input type="file" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                </div>
+                                                <div class="col-md-2 text-end">
+                                                    <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
+                                                </div>
+                                            </div>
 
                                         <div class="mt-3">
                                             <h4 class="h6">Shades</h4>
@@ -160,22 +179,27 @@
                                                                 <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
                                                             </div>
                                                         </div>
-                                                        <div class="mt-3">
-                                                            <label class="form-label">Size combinations</label>
-                                                            <div class="row g-2">
-                                                                @forelse ($shade->sizes as $size)
-                                                                    <div class="col-md-4">
-                                                                        <div class="input-group">
-                                                                            <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][width_mm]" class="form-control" value="{{ $size->width_mm }}" placeholder="Width mm" required>
-                                                                            <span class="input-group-text">×</span>
-                                                                            <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][height_mm]" class="form-control" value="{{ $size->height_mm }}" placeholder="Height mm" required>
+                                                        <details class="mt-3 border rounded p-3 size-combinations">
+                                                            <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer list-unstyled mb-0">
+                                                                <span class="fw-semibold">Size combinations</span>
+                                                                <span class="text-muted small">Show / hide</span>
+                                                            </summary>
+                                                            <div class="mt-3">
+                                                                <div class="row g-2">
+                                                                    @forelse ($shade->sizes as $size)
+                                                                        <div class="col-md-4">
+                                                                            <div class="input-group">
+                                                                                <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][width_mm]" class="form-control" value="{{ $size->width_mm }}" placeholder="Width mm" required>
+                                                                                <span class="input-group-text">×</span>
+                                                                                <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][height_mm]" class="form-control" value="{{ $size->height_mm }}" placeholder="Height mm" required>
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                @empty
-                                                                    <div class="col-12 text-muted">No sizes configured for this shade yet.</div>
-                                                                @endforelse
+                                                                    @empty
+                                                                        <div class="col-12 text-muted">No sizes configured for this shade yet.</div>
+                                                                    @endforelse
+                                                                </div>
                                                             </div>
-                                                        </div>
+                                                        </details>
                                                     </div>
                                                 @empty
                                                     <div class="text-muted">No shades in this design yet.</div>
@@ -184,14 +208,15 @@
                                             <button type="button" class="btn btn-outline-primary btn-sm add-shade">Add shade</button>
                                         </div>
                                     </div>
-                                </details>
-                            @empty
-                                <div class="text-muted">No designs added yet.</div>
-                            @endforelse
-                        </div>
+                                    </details>
+                                @empty
+                                    <div class="text-muted">No designs added yet.</div>
+                                @endforelse
+                            </div>
 
-                        <button type="button" class="btn btn-outline-primary btn-sm add-design mt-3">Add design</button>
-                    </div>
+                            <button type="button" class="btn btn-outline-primary btn-sm add-design mt-3">Add design</button>
+                        </div>
+                    </details>
                 @empty
                     <div class="text-muted">No models added yet.</div>
                 @endforelse
@@ -236,18 +261,23 @@
                                 <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
                             </div>
                         </div>
-                        <div class="mt-3">
-                            <label class="form-label">Size combinations</label>
-                            <div class="row g-2">
-                                <div class="col-md-4">
-                                    <div class="input-group">
-                                        <input type="number" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][sizes][0][width_mm]" class="form-control" placeholder="Width mm" required>
-                                        <span class="input-group-text">×</span>
-                                        <input type="number" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][sizes][0][height_mm]" class="form-control" placeholder="Height mm" required>
+                        <details class="mt-3 border rounded p-3 size-combinations">
+                            <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer list-unstyled mb-0">
+                                <span class="fw-semibold">Size combinations</span>
+                                <span class="text-muted small">Show / hide</span>
+                            </summary>
+                            <div class="mt-3">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <div class="input-group">
+                                            <input type="number" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][sizes][0][width_mm]" class="form-control" placeholder="Width mm" required>
+                                            <span class="input-group-text">×</span>
+                                            <input type="number" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][sizes][0][height_mm]" class="form-control" placeholder="Height mm" required>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </details>
                     </div>
                 `;
                 shadeList.insertAdjacentHTML('beforeend', template);
@@ -295,23 +325,60 @@
             function addModelBlock() {
                 const count = modelList.querySelectorAll('.model-block').length;
                 const template = `
-                    <div class="border rounded p-3 mb-3 model-block">
-                        <div class="row g-3 align-items-center mb-3">
-                            <div class="col-md-10">
-                                <label class="form-label">Model name</label>
-                                <input type="text" name="models[${count}][name]" class="form-control" required>
+                    <details class="border rounded p-3 mb-3 model-block" open>
+                        <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer list-unstyled">
+                            <span class="fw-semibold">New model</span>
+                            <span class="text-muted small">Toggle</span>
+                        </summary>
+                        <div class="mt-3">
+                            <div class="row g-3 align-items-center mb-3">
+                                <div class="col-md-5">
+                                    <label class="form-label">Model name</label>
+                                    <input type="text" name="models[${count}][name]" class="form-control" required>
+                                </div>
+                                <div class="col-md-5">
+                                    <label class="form-label">Model image</label>
+                                    <div class="mb-2 d-none">
+                                        <img src="" class="img-fluid rounded model-preview" style="max-height: 80px;" alt="Preview">
+                                    </div>
+                                    <input type="file" name="models[${count}][main_image]" class="form-control model-image-input" accept="image/jpeg,image/png,image/webp">
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
+                                </div>
                             </div>
-                            <div class="col-md-2 text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
-                            </div>
+                            <div class="design-list"></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm add-design mt-3">Add design</button>
                         </div>
-                        <div class="design-list"></div>
-                        <button type="button" class="btn btn-outline-primary btn-sm add-design mt-3">Add design</button>
-                    </div>
+                    </details>
                 `;
                 modelList.insertAdjacentHTML('beforeend', template);
             }
 
+            function bindModelImagePreview(input) {
+                const preview = input.closest('.row, .col-md-5')?.querySelector('.model-preview');
+                if (! preview) {
+                    return;
+                }
+
+                input.addEventListener('change', function () {
+                    const file = this.files && this.files[0];
+                    if (! file) {
+                        preview.src = '';
+                        preview.parentElement?.classList.add('d-none');
+                        return;
+                    }
+
+                    const reader = new FileReader();
+                    reader.onload = function (event) {
+                        preview.src = event.target.result;
+                        preview.parentElement?.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            document.querySelectorAll('.model-image-input').forEach(bindModelImagePreview);
             document.getElementById('add-model')?.addEventListener('click', addModelBlock);
 
             document.addEventListener('click', function (event) {
