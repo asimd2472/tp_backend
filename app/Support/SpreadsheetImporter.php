@@ -4,6 +4,7 @@ namespace App\Support;
 
 use App\Models\Product;
 use App\Models\ProductDesign;
+use App\Models\ProductModel;
 use App\Models\ProductShade;
 use App\Models\ProductSize;
 use Illuminate\Support\Facades\DB;
@@ -40,27 +41,49 @@ class SpreadsheetImporter
                     }
 
                     $productName = trim((string) $normalized['product']);
+                    $modelName = trim((string) ($normalized['model'] ?? ''));
                     $productKey = $this->cacheKey($productName);
+
                     if (! isset($productCache[$productKey])) {
-                        $productCache[$productKey] = Product::query()->firstOrCreate([
+                        $product = Product::query()->firstOrCreate([
                             'slug' => $this->slugify($productName),
                         ], [
                             'name' => $productName,
                             'category' => $normalized['category'] ?? null,
-                            'model' => $normalized['model'] ?? null,
+                            'model' => null,
                             'starting_price' => 0,
                             'description' => null,
                         ]);
+
+                        $productCache[$productKey] = $product;
+                        $products++;
                     }
+
                     $product = $productCache[$productKey];
+                    $modelKey = $product->getKey().':'.$this->cacheKey($modelName !== '' ? $modelName : 'Default');
+
+                    if (! isset($productCache[$modelKey])) {
+                        $productCache[$modelKey] = $product->models()->firstOrCreate([
+                            'name' => $modelName !== '' ? $modelName : 'Default',
+                        ], [
+                            'slug' => $this->buildModelSlug($productName, $modelName),
+                            'starting_price' => 0,
+                            'description' => null,
+                            'is_active' => true,
+                        ]);
+                    }
+
+                    $model = $productCache[$modelKey];
 
                     $designName = trim((string) ($normalized['design'] ?? ''));
                     if ($designName !== '') {
-                        $designKey = $product->getKey().':'.$this->cacheKey($designName);
+                        $designKey = $model->getKey().':'.$this->cacheKey($designName);
                         if (! isset($designCache[$designKey])) {
-                            $designCache[$designKey] = $product->designs()->firstOrCreate([
+                            $designCache[$designKey] = $model->designs()->firstOrCreate([
                                 'name' => $designName,
                             ], [
+                                'product_id' => $product->id,
+                                'product_model_id' => $model->id,
                                 'code' => null,
                                 'sort_order' => 0,
                             ]);
@@ -111,8 +134,6 @@ class SpreadsheetImporter
                             }
                         }
                     }
-
-                    $products++;
                 }
             });
         }
@@ -129,7 +150,11 @@ class SpreadsheetImporter
     {
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
 
-        if ($ext === 'csv') {
+        if ($ext === '' || $ext === 'csv') {
+            if (! is_file($path)) {
+                return [];
+            }
+
             $rows = array_map('str_getcsv', file($path));
             return $this->mapHeaderRows($rows);
         }
@@ -284,6 +309,27 @@ class SpreadsheetImporter
         $slug = Str::slug($value);
 
         return $slug !== '' ? $slug : 'product';
+    }
+
+    protected function buildModelSlug(string $productName, string $modelName = ''): string
+    {
+        $base = trim($productName);
+        if ($modelName !== '') {
+            $base .= ' '.$modelName;
+        }
+
+        $slug = $this->slugify($base);
+        if (! ProductModel::query()->where('slug', $slug)->exists()) {
+            return $slug;
+        }
+
+        $suffix = 2;
+        do {
+            $candidate = $slug.'-'.$suffix;
+            $suffix++;
+        } while (ProductModel::query()->where('slug', $candidate)->exists());
+
+        return $candidate;
     }
 
     protected function cacheKey(string $value): string

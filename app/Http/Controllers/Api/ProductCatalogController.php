@@ -4,18 +4,81 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Product;
+use App\Models\ProductModel;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
 
 class ProductCatalogController extends Controller
 {
+    public function index(): JsonResponse
+    {
+        $products = Product::query()
+            ->with('models')
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get();
+
+        $payload = $products->map(function (Product $product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'slug' => $product->slug,
+                'category' => $product->category,
+                'main_image_url' => $product->thumbnail_url,
+                'models' => $product->models->map(function (\App\Models\ProductModel $model) {
+                    return [
+                        'id' => $model->id,
+                        'name' => $model->name,
+                        'slug' => $model->slug,
+                        'starting_price' => (float) $model->starting_price,
+                        'main_image_url' => $model->thumbnail_url,
+                    ];
+                })->values(),
+            ];
+        })->values();
+
+        return response()->json([
+            'success' => true,
+            'products' => $payload,
+        ]);
+    }
+
     public function show(string $slug): JsonResponse
     {
-        $product = Product::query()->where('slug', $slug)->with([
+        $model = ProductModel::query()->where('slug', $slug)->with([
             'designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
             'designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
-        ])->firstOrFail();
+            'product',
+        ])->first();
 
-        $designs = $product->designs->map(function ($design) {
+        if (! $model) {
+            $product = Product::query()->where('slug', $slug)->with([
+                'models.designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+                'models.designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
+            ])->firstOrFail();
+
+            return response()->json([
+                'success' => true,
+                'product' => [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'category' => $product->category,
+                    'slug' => $product->slug,
+                    'main_image_url' => $product->thumbnail_url,
+                ],
+                'models' => $product->models->map(function (\App\Models\ProductModel $item) {
+                    return [
+                        'id' => $item->id,
+                        'name' => $item->name,
+                        'slug' => $item->slug,
+                    ];
+                })->values(),
+            ]);
+        }
+
+        $product = $model->product;
+
+        $designs = $model->designs->map(function ($design) {
             $shades = $design->shades->map(function ($shade) {
                 $images = $shade->images->map(fn ($image) => [
                     'id' => $image->id,
@@ -60,14 +123,19 @@ class ProductCatalogController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'category' => $product->category,
-                'model' => $product->model,
                 'slug' => $product->slug,
-                'short_description' => $product->short_description,
-                'description' => $product->description,
-                'starting_price' => (float) $product->starting_price,
-                'is_premium' => (bool) $product->is_premium,
-                'is_active' => (bool) $product->is_active,
                 'main_image_url' => $product->thumbnail_url,
+            ],
+            'model' => [
+                'id' => $model->id,
+                'name' => $model->name,
+                'slug' => $model->slug,
+                'short_description' => $model->short_description,
+                'description' => $model->description,
+                'starting_price' => (float) $model->starting_price,
+                'is_premium' => (bool) $model->is_premium,
+                'is_active' => (bool) $model->is_active,
+                'main_image_url' => $model->thumbnail_url,
             ],
             'designs' => $designs,
             'defaults' => [

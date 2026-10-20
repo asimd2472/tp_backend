@@ -33,9 +33,14 @@ class Product extends Model
         ];
     }
 
-    public function designs(): HasMany
+    public function models(): HasMany
     {
-        return $this->hasMany(ProductDesign::class)->orderBy('sort_order')->orderBy('id');
+        return $this->hasMany(ProductModel::class)->orderBy('name')->orderBy('id');
+    }
+
+    public function designs(): HasManyThrough
+    {
+        return $this->hasManyThrough(ProductDesign::class, ProductModel::class)->orderBy('sort_order')->orderBy('id');
     }
 
     public function shades(): HasManyThrough

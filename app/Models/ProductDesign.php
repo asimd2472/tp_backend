@@ -13,6 +13,7 @@ class ProductDesign extends Model
 
     protected $fillable = [
         'product_id',
+        'product_model_id',
         'name',
         'code',
         'thumbnail_image',
@@ -21,7 +22,12 @@ class ProductDesign extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        return $this->belongsTo(Product::class, 'product_id');
+    }
+
+    public function model(): BelongsTo
+    {
+        return $this->belongsTo(ProductModel::class, 'product_model_id');
     }
 
     public function shades(): HasMany
