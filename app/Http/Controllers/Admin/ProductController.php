@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductDesign;
 use App\Models\ProductImage;
+use App\Models\ProductModel;
 use App\Models\ProductShade;
 use App\Models\ProductSize;
 use Illuminate\Http\RedirectResponse;
@@ -45,6 +46,7 @@ class ProductController extends Controller
             'is_premium' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
         ]);
 
@@ -65,7 +67,7 @@ class ProductController extends Controller
                 $product->update(['main_image' => $request->file('main_image')->store('products', 'public')]);
             }
 
-            $this->syncDesigns($product, $request->input('designs', []));
+            $this->syncModels($product, $request->input('models', $request->input('designs', [])));
 
             return $product;
         });
@@ -75,7 +77,10 @@ class ProductController extends Controller
 
     public function edit(Product $product): View
     {
-        $product->load(['designs.shades.images', 'designs.shades.sizes']);
+        $product->load([
+            'models.designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+            'models.designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
+        ]);
 
         return view('admin.products.form', [
             'product' => $product,
@@ -96,6 +101,7 @@ class ProductController extends Controller
             'is_premium' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
         ]);
 
@@ -121,7 +127,7 @@ class ProductController extends Controller
             }
 
             $product->update($data);
-            $this->syncDesigns($product, $request->input('designs', []));
+            $this->syncModels($product, $request->input('models', $request->input('designs', [])));
         });
 
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
@@ -169,7 +175,68 @@ class ProductController extends Controller
         return $normalized;
     }
 
-    protected function syncDesigns(Product $product, array $designs): void
+    protected function resolveModelSlug(?string $slug, string $name, ?ProductModel $model = null): string
+    {
+        $base = trim((string) ($slug ?: $name));
+        $normalized = preg_replace('/[^A-Za-z0-9-]+/', '-', strtolower($base));
+        $normalized = trim((string) preg_replace('/-+/', '-', $normalized), '-');
+        $normalized = $normalized !== '' ? $normalized : 'model';
+
+        if ($model) {
+            $existing = ProductModel::query()->where('slug', $normalized)->whereKeyNot($model->id)->exists();
+            if ($existing) {
+                $normalized .= '-'.time();
+            }
+
+            return $normalized;
+        }
+
+        if (ProductModel::query()->where('slug', $normalized)->exists()) {
+            $normalized .= '-'.time();
+        }
+
+        return $normalized;
+    }
+
+    protected function syncModels(Product $product, array $models): void
+    {
+        $modelIds = [];
+
+        foreach ($models as $index => $modelData) {
+            if (! is_array($modelData)) {
+                continue;
+            }
+
+            $name = trim((string) ($modelData['name'] ?? ''));
+            if ($name === '') {
+                continue;
+            }
+
+            $model = $product->models()->firstOrNew(['id' => $modelData['id'] ?? null]);
+            $model->fill([
+                'name' => $name,
+                'slug' => $this->resolveModelSlug($modelData['slug'] ?? null, $name, $model),
+                'short_description' => $modelData['short_description'] ?? null,
+                'description' => $modelData['description'] ?? null,
+                'starting_price' => (float) ($modelData['starting_price'] ?? 0),
+                'is_premium' => (bool) ($modelData['is_premium'] ?? false),
+                'is_active' => (bool) ($modelData['is_active'] ?? true),
+            ]);
+
+            if (isset($modelData['main_image']) && $modelData['main_image'] instanceof \Illuminate\Http\UploadedFile) {
+                $model->main_image = $modelData['main_image']->store('products/models', 'public');
+            }
+
+            $model->save();
+            $modelIds[] = $model->id;
+
+            $this->syncDesigns($model, $modelData['designs'] ?? []);
+        }
+
+        $product->models()->whereNotIn('id', $modelIds)->delete();
+    }
+
+    protected function syncDesigns(ProductModel $model, array $designs): void
     {
         $designIds = [];
 
@@ -183,8 +250,10 @@ class ProductController extends Controller
                 continue;
             }
 
-            $design = $product->designs()->firstOrNew(['id' => $designData['id'] ?? null]);
+            $design = $model->designs()->firstOrNew(['id' => $designData['id'] ?? null]);
             $design->fill([
+                'product_id' => $model->product_id,
+                'product_model_id' => $model->id,
                 'name' => $name,
                 'code' => $designData['code'] ?? null,
                 'sort_order' => $index,
@@ -200,7 +269,7 @@ class ProductController extends Controller
             $this->syncShades($design, $designData['shades'] ?? []);
         }
 
-        $product->designs()->whereNotIn('id', $designIds)->delete();
+        $model->designs()->whereNotIn('id', $designIds)->delete();
     }
 
     protected function syncShades(ProductDesign $design, array $shades): void

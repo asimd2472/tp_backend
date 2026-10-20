@@ -85,90 +85,117 @@
 
             <hr class="my-4">
 
-            <div class="mb-3">
-                <h3 class="h5">Designs</h3>
+            <div class="mb-3 d-flex justify-content-between align-items-center">
+                <h3 class="h5 mb-0">Models & designs</h3>
+                <button type="button" id="add-model" class="btn btn-outline-primary btn-sm">Add model</button>
             </div>
 
             @php
-                $designs = $product->designs ?? collect();
+                $models = $product->models ?? collect();
             @endphp
 
-            <div id="design-list">
-                @forelse ($designs as $design)
-                    <div class="border rounded p-3 mb-3 design-block">
-                        <div class="row g-3 align-items-center">
-                            <div class="col-md-4">
-                                <label class="form-label">Design name</label>
-                                <input type="text" name="designs[{{ $loop->index }}][name]" class="form-control" value="{{ $design->name }}" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Code</label>
-                                <input type="text" name="designs[{{ $loop->index }}][code]" class="form-control" value="{{ $design->code }}">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Thumbnail</label>
-                                <input type="file" name="designs[{{ $loop->index }}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
+            <div id="model-list">
+                @forelse ($models as $model)
+                    <div class="border rounded p-3 mb-3 model-block">
+                        <input type="hidden" name="models[{{ $loop->index }}][id]" value="{{ $model->id }}">
+                        <div class="row g-3 align-items-center mb-3">
+                            <div class="col-md-10">
+                                <label class="form-label">Model name</label>
+                                <input type="text" name="models[{{ $loop->index }}][name]" class="form-control" value="{{ $model->name }}" required>
                             </div>
                             <div class="col-md-2 text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
                             </div>
                         </div>
-                        <div class="mt-3">
-                            <h4 class="h6">Shades</h4>
-                            <div class="shade-list">
-                                @forelse ($design->shades as $shade)
-                                    <div class="border rounded p-3 mb-2 shade-block">
+
+                        <div class="design-list">
+                            @forelse ($model->designs as $design)
+                                <details class="border rounded p-3 mb-2 design-block" {{ $loop->first ? 'open' : '' }}>
+                                    <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer">
+                                        <span class="fw-semibold">{{ $design->name ?: 'New design' }}</span>
+                                        <span class="text-muted small">Toggle</span>
+                                    </summary>
+                                    <div class="mt-3">
                                         <div class="row g-3 align-items-center">
-                                            <div class="col-md-3">
-                                                <label class="form-label">Shade name</label>
-                                                <input type="text" name="designs[{{ $loop->parent->index }}][shades][{{ $loop->index }}][name]" class="form-control" value="{{ $shade->name }}" required>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <label class="form-label">Color</label>
-                                                <input type="color" name="designs[{{ $loop->parent->index }}][shades][{{ $loop->index }}][color_hex]" class="form-control form-control-color" value="{{ $shade->color_hex ?: '#cccccc' }}">
+                                            <div class="col-md-4">
+                                                <label class="form-label">Design name</label>
+                                                <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][name]" class="form-control" value="{{ $design->name }}" required>
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label">Swatch image</label>
-                                                <input type="file" name="designs[{{ $loop->parent->index }}][shades][{{ $loop->index }}][swatch]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                <label class="form-label">Code</label>
+                                                <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][code]" class="form-control" value="{{ $design->code }}">
                                             </div>
                                             <div class="col-md-3">
-                                                <label class="form-label">Gallery image</label>
-                                                <input type="file" name="designs[{{ $loop->parent->index }}][shades][{{ $loop->index }}][images][0][file]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                <label class="form-label">Thumbnail</label>
+                                                <input type="file" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
                                             </div>
-                                            <div class="col-md-1 text-end">
-                                                <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
+                                            <div class="col-md-2 text-end">
+                                                <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
                                             </div>
                                         </div>
+
                                         <div class="mt-3">
-                                            <label class="form-label">Size combinations</label>
-                                            <div class="row g-2">
-                                                @forelse ($shade->sizes as $size)
-                                                    <div class="col-md-4">
-                                                        <div class="input-group">
-                                                            <input type="number" name="designs[{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][width_mm]" class="form-control" value="{{ $size->width_mm }}" placeholder="Width mm" required>
-                                                            <span class="input-group-text">×</span>
-                                                            <input type="number" name="designs[{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][height_mm]" class="form-control" value="{{ $size->height_mm }}" placeholder="Height mm" required>
+                                            <h4 class="h6">Shades</h4>
+                                            <div class="shade-list">
+                                                @forelse ($design->shades as $shade)
+                                                    <div class="border rounded p-3 mb-2 shade-block">
+                                                        <div class="row g-3 align-items-center">
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Shade name</label>
+                                                                <input type="text" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][name]" class="form-control" value="{{ $shade->name }}" required>
+                                                            </div>
+                                                            <div class="col-md-2">
+                                                                <label class="form-label">Color</label>
+                                                                <input type="color" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][color_hex]" class="form-control form-control-color" value="{{ $shade->color_hex ?: '#cccccc' }}">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Swatch image</label>
+                                                                <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][swatch]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                            </div>
+                                                            <div class="col-md-3">
+                                                                <label class="form-label">Gallery image</label>
+                                                                <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][images][0][file]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                            </div>
+                                                            <div class="col-md-1 text-end">
+                                                                <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
+                                                            </div>
+                                                        </div>
+                                                        <div class="mt-3">
+                                                            <label class="form-label">Size combinations</label>
+                                                            <div class="row g-2">
+                                                                @forelse ($shade->sizes as $size)
+                                                                    <div class="col-md-4">
+                                                                        <div class="input-group">
+                                                                            <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][width_mm]" class="form-control" value="{{ $size->width_mm }}" placeholder="Width mm" required>
+                                                                            <span class="input-group-text">×</span>
+                                                                            <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][height_mm]" class="form-control" value="{{ $size->height_mm }}" placeholder="Height mm" required>
+                                                                        </div>
+                                                                    </div>
+                                                                @empty
+                                                                    <div class="col-12 text-muted">No sizes configured for this shade yet.</div>
+                                                                @endforelse
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 @empty
-                                                    <div class="col-12 text-muted">No sizes configured for this shade yet.</div>
+                                                    <div class="text-muted">No shades in this design yet.</div>
                                                 @endforelse
                                             </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm add-shade">Add shade</button>
                                         </div>
                                     </div>
-                                @empty
-                                    <div class="text-muted">No shades in this design yet.</div>
-                                @endforelse
-                            </div>
-                            <button type="button" class="btn btn-outline-primary btn-sm add-shade">Add shade</button>
+                                </details>
+                            @empty
+                                <div class="text-muted">No designs added yet.</div>
+                            @endforelse
                         </div>
+
+                        <button type="button" class="btn btn-outline-primary btn-sm add-design mt-3">Add design</button>
                     </div>
                 @empty
-                    <div class="text-muted">No designs added yet.</div>
+                    <div class="text-muted">No models added yet.</div>
                 @endforelse
             </div>
-
-            <button type="button" id="add-design" class="btn btn-outline-primary mb-3">Add design</button>
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-cta">{{ $isEdit ? 'Update product' : 'Create product' }}</button>
@@ -179,11 +206,11 @@
 
     <script>
         (function () {
-            const addDesignBtn = document.getElementById('add-design');
-            const designList = document.getElementById('design-list');
+            const modelList = document.getElementById('model-list');
 
-            function addShadeBlock(designIndex) {
-                const designBlock = designList.querySelectorAll('.design-block')[designIndex];
+            function addShadeBlock(modelIndex, designIndex) {
+                const modelBlock = modelList.querySelectorAll('.model-block')[modelIndex];
+                const designBlock = modelBlock.querySelectorAll('.design-block')[designIndex];
                 const shadeList = designBlock.querySelector('.shade-list');
                 const count = shadeList.querySelectorAll('.shade-block').length;
                 const template = `
@@ -191,19 +218,19 @@
                         <div class="row g-3 align-items-center">
                             <div class="col-md-3">
                                 <label class="form-label">Shade name</label>
-                                <input type="text" name="designs[${designIndex}][shades][${count}][name]" class="form-control" required>
+                                <input type="text" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][name]" class="form-control" required>
                             </div>
                             <div class="col-md-2">
                                 <label class="form-label">Color</label>
-                                <input type="color" name="designs[${designIndex}][shades][${count}][color_hex]" class="form-control form-control-color" value="#cccccc">
+                                <input type="color" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][color_hex]" class="form-control form-control-color" value="#cccccc">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Swatch image</label>
-                                <input type="file" name="designs[${designIndex}][shades][${count}][swatch]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                <input type="file" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][swatch]" class="form-control" accept="image/jpeg,image/png,image/webp">
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Gallery image</label>
-                                <input type="file" name="designs[${designIndex}][shades][${count}][images][0][file]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                <input type="file" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][images][0][file]" class="form-control" accept="image/jpeg,image/png,image/webp">
                             </div>
                             <div class="col-md-1 text-end">
                                 <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
@@ -214,9 +241,9 @@
                             <div class="row g-2">
                                 <div class="col-md-4">
                                     <div class="input-group">
-                                        <input type="number" name="designs[${designIndex}][shades][${count}][sizes][0][width_mm]" class="form-control" placeholder="Width mm" required>
+                                        <input type="number" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][sizes][0][width_mm]" class="form-control" placeholder="Width mm" required>
                                         <span class="input-group-text">×</span>
-                                        <input type="number" name="designs[${designIndex}][shades][${count}][sizes][0][height_mm]" class="form-control" placeholder="Height mm" required>
+                                        <input type="number" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][sizes][0][height_mm]" class="form-control" placeholder="Height mm" required>
                                     </div>
                                 </div>
                             </div>
@@ -226,49 +253,93 @@
                 shadeList.insertAdjacentHTML('beforeend', template);
             }
 
-            addDesignBtn?.addEventListener('click', function () {
+            function addDesignBlock(modelIndex) {
+                const modelBlock = modelList.querySelectorAll('.model-block')[modelIndex];
+                const designList = modelBlock.querySelector('.design-list');
                 const count = designList.querySelectorAll('.design-block').length;
                 const template = `
-                    <div class="border rounded p-3 mb-3 design-block">
-                        <div class="row g-3 align-items-center">
-                            <div class="col-md-4">
-                                <label class="form-label">Design name</label>
-                                <input type="text" name="designs[${count}][name]" class="form-control" required>
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Code</label>
-                                <input type="text" name="designs[${count}][code]" class="form-control">
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label">Thumbnail</label>
-                                <input type="file" name="designs[${count}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
-                            </div>
-                            <div class="col-md-2 text-end">
-                                <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
-                            </div>
-                        </div>
+                    <details class="border rounded p-3 mb-2 design-block" open>
+                        <summary class="d-flex justify-content-between align-items-center gap-3 cursor-pointer">
+                            <span class="fw-semibold">New design</span>
+                            <span class="text-muted small">Toggle</span>
+                        </summary>
                         <div class="mt-3">
-                            <h4 class="h6">Shades</h4>
-                            <div class="shade-list"></div>
-                            <button type="button" class="btn btn-outline-primary btn-sm add-shade">Add shade</button>
+                            <div class="row g-3 align-items-center">
+                                <div class="col-md-4">
+                                    <label class="form-label">Design name</label>
+                                    <input type="text" name="models[${modelIndex}][designs][${count}][name]" class="form-control" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Code</label>
+                                    <input type="text" name="models[${modelIndex}][designs][${count}][code]" class="form-control">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label">Thumbnail</label>
+                                    <input type="file" name="models[${modelIndex}][designs][${count}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                </div>
+                                <div class="col-md-2 text-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
+                                </div>
+                            </div>
+                            <div class="mt-3">
+                                <h4 class="h6">Shades</h4>
+                                <div class="shade-list"></div>
+                                <button type="button" class="btn btn-outline-primary btn-sm add-shade">Add shade</button>
+                            </div>
                         </div>
-                    </div>
+                    </details>
                 `;
                 designList.insertAdjacentHTML('beforeend', template);
-            });
+            }
+
+            function addModelBlock() {
+                const count = modelList.querySelectorAll('.model-block').length;
+                const template = `
+                    <div class="border rounded p-3 mb-3 model-block">
+                        <div class="row g-3 align-items-center mb-3">
+                            <div class="col-md-10">
+                                <label class="form-label">Model name</label>
+                                <input type="text" name="models[${count}][name]" class="form-control" required>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
+                            </div>
+                        </div>
+                        <div class="design-list"></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm add-design mt-3">Add design</button>
+                    </div>
+                `;
+                modelList.insertAdjacentHTML('beforeend', template);
+            }
+
+            document.getElementById('add-model')?.addEventListener('click', addModelBlock);
 
             document.addEventListener('click', function (event) {
                 const target = event.target;
+                if (target.classList.contains('remove-model')) {
+                    target.closest('.model-block').remove();
+                    return;
+                }
                 if (target.classList.contains('remove-design')) {
                     target.closest('.design-block').remove();
+                    return;
                 }
                 if (target.classList.contains('remove-shade')) {
                     target.closest('.shade-block').remove();
+                    return;
+                }
+                if (target.classList.contains('add-design')) {
+                    const modelBlock = target.closest('.model-block');
+                    const modelIndex = [...modelList.querySelectorAll('.model-block')].indexOf(modelBlock);
+                    addDesignBlock(modelIndex);
+                    return;
                 }
                 if (target.classList.contains('add-shade')) {
                     const designBlock = target.closest('.design-block');
-                    const designIndex = [...designList.querySelectorAll('.design-block')].indexOf(designBlock);
-                    addShadeBlock(designIndex);
+                    const modelBlock = target.closest('.model-block');
+                    const modelIndex = [...modelList.querySelectorAll('.model-block')].indexOf(modelBlock);
+                    const designIndex = [...modelBlock.querySelectorAll('.design-block')].indexOf(designBlock);
+                    addShadeBlock(modelIndex, designIndex);
                 }
             });
         })();
