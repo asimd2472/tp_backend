@@ -13,5 +13,9 @@ Route::get('/products/french-door/options', FrenchDoorOptionsController::class)
     ->name('api.products.french-door.options');
 Route::get('/products/{slug}', [ProductCatalogController::class, 'show'])
     ->name('api.products.show');
+Route::get('/product-details', [ProductCatalogController::class, 'productDetails'])
+    ->name('api.product-details');
+Route::get('/product-details/{model_id}', [ProductCatalogController::class, 'productDetails'])
+    ->name('api.product-details-by-id');
 Route::get('/product/french-door', [ProductController::class, 'french_door'])
     ->name('api.product.french-door');
