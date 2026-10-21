@@ -41,7 +41,7 @@ class ProductCatalogApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('product.slug', $product->slug)
             ->assertJsonPath('models.0.main_image_url', asset('uploads/model/sample.jpg'))
-            ->assertJsonPath('models.1.main_image_url', asset('uploads/default/model.png'));
+            ->assertJsonPath('models.1.main_image_url', asset('uploads/default/model.webp'));
     }
 
     public function test_it_returns_product_details_by_model_id_with_default_image_fallback(): void
@@ -71,6 +71,6 @@ class ProductCatalogApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonPath('product.name', 'Oak Doors')
             ->assertJsonPath('model.id', $model->id)
-            ->assertJsonPath('model.main_image_url', asset('uploads/default/model.png'));
+            ->assertJsonPath('model.main_image_url', asset('uploads/default/model.webp'));
     }
 }

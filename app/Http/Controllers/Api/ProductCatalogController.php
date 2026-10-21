@@ -216,7 +216,7 @@ class ProductCatalogController extends Controller
                     'id' => $shade->id,
                     'name' => $shade->name,
                     'color' => $shade->color_hex,
-                    'swatch_url' => $this->resolveImageUrl($shade->swatch_image, 'uploads/default/model.png'),
+                    'swatch_url' => $this->resolveImageUrl($shade->swatch_image, 'uploads/default/model.webp'),
                     'primary_image_url' => $defaultImage,
                     'gallery' => $gallery,
                     'sizes' => $shade->sizes->map(fn ($size) => [
@@ -232,7 +232,7 @@ class ProductCatalogController extends Controller
                 'id' => $design->id,
                 'name' => $design->name,
                 'code' => $design->code,
-                'thumbnail_url' => $this->resolveImageUrl($design->thumbnail_image, 'uploads/default/model.png'),
+                'thumbnail_url' => $this->resolveImageUrl($design->thumbnail_image, 'uploads/default/model.webp'),
                 'shades' => $shades,
             ];
         })->values();
@@ -257,7 +257,7 @@ class ProductCatalogController extends Controller
                 'slug' => $product->slug,
                 'short_description' => $product->short_description,
                 'description' => $product->description,
-                'main_image_url' => $this->resolveImageUrl($product->main_image, 'uploads/default/model.png'),
+                'main_image_url' => $this->resolveImageUrl($product->main_image, 'uploads/default/model.webp'),
             ],
             'model' => [
                 'id' => $model->id,
@@ -268,7 +268,7 @@ class ProductCatalogController extends Controller
                 'starting_price' => (float) $model->starting_price,
                 'is_premium' => (bool) $model->is_premium,
                 'is_active' => (bool) $model->is_active,
-                'main_image_url' => $this->resolveImageUrl($model->main_image, 'uploads/default/model.png'),
+                'main_image_url' => $this->resolveImageUrl($model->main_image, 'uploads/default/model.webp'),
             ],
             'designs' => $designs,
             'defaults' => [
@@ -279,7 +279,7 @@ class ProductCatalogController extends Controller
         ]);
     }
 
-    protected function resolveImageUrl(?string $path, string $default = 'uploads/default/model.png'): string
+    protected function resolveImageUrl(?string $path, string $default = 'uploads/default/model.webp'): string
     {
         if (blank($path)) {
             return asset($default);
