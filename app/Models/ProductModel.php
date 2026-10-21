@@ -46,11 +46,11 @@ class ProductModel extends Model
 
     public function getThumbnailUrlAttribute(): ?string
     {
-        if (! $this->main_image) {
-            return null;
+        if ($this->main_image) {
+            return str_starts_with($this->main_image, 'http') ? $this->main_image : asset('uploads/'.$this->main_image);
         }
 
-        return str_starts_with($this->main_image, 'http') ? $this->main_image : asset('uploads/'.$this->main_image);
+        return asset('uploads/default/model.png');
     }
 
     public function getMainImageUrlAttribute(): ?string

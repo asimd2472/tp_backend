@@ -43,6 +43,43 @@ class ProductCatalogController extends Controller
         ]);
     }
 
+    public function modelsByProduct(string $slug): JsonResponse
+    {
+        $product = Product::query()
+            ->select(['id', 'name', 'slug', 'category', 'main_image'])
+            ->where('slug', $slug)
+            ->where('is_active', true)
+            ->firstOrFail();
+
+        $models = ProductModel::query()
+            ->select(['id', 'product_id', 'name', 'slug', 'main_image'])
+            ->where('product_id', $product->id)
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->orderBy('id')
+            ->get()
+            ->map(function (ProductModel $model) {
+                return [
+                    'id' => $model->id,
+                    'name' => $model->name,
+                    'slug' => $model->slug,
+                    'main_image_url' => $model->thumbnail_url,
+                ];
+            })->values();
+
+        return response()->json([
+            'success' => true,
+            'product' => [
+                'id' => $product->id,
+                'name' => $product->name,
+                'slug' => $product->slug,
+                'category' => $product->category,
+                'main_image_url' => $product->thumbnail_url,
+            ],
+            'models' => $models,
+        ]);
+    }
+
     public function show(string $slug): JsonResponse
     {
         $model = ProductModel::query()->where('slug', $slug)->with([
