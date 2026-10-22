@@ -7,7 +7,6 @@ use App\Models\Product;
 use App\Models\ProductModel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Collection;
 
 class ProductCatalogController extends Controller
 {
@@ -26,13 +25,14 @@ class ProductCatalogController extends Controller
                 'slug' => $product->slug,
                 'category' => $product->category,
                 'main_image_url' => $product->thumbnail_url,
-                'models' => $product->models->map(function (\App\Models\ProductModel $model) {
+                'models' => $product->models->map(function (ProductModel $model) {
                     return [
                         'id' => $model->id,
                         'name' => $model->name,
                         'slug' => $model->slug,
                         'starting_price' => (float) $model->starting_price,
                         'main_image_url' => $model->thumbnail_url,
+                        'is_default' => (bool) $model->is_default,
                     ];
                 })->values(),
             ];
@@ -53,7 +53,7 @@ class ProductCatalogController extends Controller
             ->firstOrFail();
 
         $models = ProductModel::query()
-            ->select(['id', 'product_id', 'name', 'slug', 'main_image'])
+            ->select(['id', 'product_id', 'name', 'slug', 'main_image', 'is_default'])
             ->where('product_id', $product->id)
             ->where('is_active', true)
             ->orderBy('name')
@@ -65,6 +65,7 @@ class ProductCatalogController extends Controller
                     'name' => $model->name,
                     'slug' => $model->slug,
                     'main_image_url' => $model->thumbnail_url,
+                    'is_default' => (bool) $model->is_default,
                 ];
             })->values();
 
@@ -104,11 +105,12 @@ class ProductCatalogController extends Controller
                     'slug' => $product->slug,
                     'main_image_url' => $product->thumbnail_url,
                 ],
-                'models' => $product->models->map(function (\App\Models\ProductModel $item) {
+                'models' => $product->models->map(function (ProductModel $item) {
                     return [
                         'id' => $item->id,
                         'name' => $item->name,
                         'slug' => $item->slug,
+                        'is_default' => (bool) $item->is_default,
                     ];
                 })->values(),
             ]);
@@ -268,6 +270,7 @@ class ProductCatalogController extends Controller
                 'starting_price' => (float) $model->starting_price,
                 'is_premium' => (bool) $model->is_premium,
                 'is_active' => (bool) $model->is_active,
+                'is_default' => (bool) $model->is_default,
                 'main_image_url' => $this->resolveImageUrl($model->main_image, 'uploads/default/model.webp'),
             ],
             'designs' => $designs,

@@ -27,6 +27,7 @@ class ProductCatalogApiTest extends TestCase
             'slug' => 'model-with-image',
             'main_image' => 'model/sample.jpg',
             'is_active' => true,
+            'is_default' => true,
         ]);
 
         ProductModel::create([
@@ -41,6 +42,7 @@ class ProductCatalogApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('product.slug', $product->slug)
             ->assertJsonPath('models.0.main_image_url', asset('uploads/model/sample.jpg'))
+            ->assertJsonPath('models.0.is_default', true)
             ->assertJsonPath('models.1.main_image_url', asset('uploads/default/model.webp'));
     }
 

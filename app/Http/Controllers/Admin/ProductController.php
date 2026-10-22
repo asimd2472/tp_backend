@@ -49,6 +49,7 @@ class ProductController extends Controller
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
+            'models.*.is_default' => ['nullable', 'boolean'],
             'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -110,6 +111,7 @@ class ProductController extends Controller
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
+            'models.*.is_default' => ['nullable', 'boolean'],
             'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
@@ -239,6 +241,9 @@ class ProductController extends Controller
                     $model->{$attribute} = $modelData[$attribute] ?? $default;
                 }
             }
+            if (array_key_exists('is_default', $modelData) || ! $model->exists) {
+                $model->is_default = (bool) ($modelData['is_default'] ?? false);
+            }
 
             if (isset($modelData['main_image']) && $modelData['main_image'] instanceof UploadedFile) {
                 if ($model->main_image) {
@@ -249,6 +254,9 @@ class ProductController extends Controller
             }
 
             $model->save();
+            if ($model->is_default) {
+                $product->models()->whereKeyNot($model->getKey())->update(['is_default' => false]);
+            }
 
             if (isset($modelData['designs']) && is_array($modelData['designs'])) {
                 $this->syncDesigns($model, $modelData['designs']);

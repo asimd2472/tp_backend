@@ -114,6 +114,11 @@
                                 <div class="col-md-5">
                                     <label class="form-label">Model name</label>
                                     <input type="text" name="models[{{ $loop->index }}][name]" class="form-control" value="{{ $model->name }}" required>
+                                    <input type="hidden" name="models[{{ $loop->index }}][is_default]" value="0">
+                                    <div class="form-check mt-2">
+                                        <input type="checkbox" name="models[{{ $loop->index }}][is_default]" class="form-check-input default-model-input" id="model-default-{{ $model->id }}" value="1" {{ $model->is_default ? 'checked' : '' }}>
+                                        <label class="form-check-label" for="model-default-{{ $model->id }}">Default model</label>
+                                    </div>
                                 </div>
                                 <div class="col-md-5">
                                     <label class="form-label">Model image</label>
@@ -378,6 +383,11 @@
                                 <div class="col-md-5">
                                     <label class="form-label">Model name</label>
                                     <input type="text" name="models[${count}][name]" class="form-control" required>
+                                    <input type="hidden" name="models[${count}][is_default]" value="0">
+                                    <div class="form-check mt-2">
+                                        <input type="checkbox" name="models[${count}][is_default]" class="form-check-input default-model-input" id="model-default-new-${count}" value="1">
+                                        <label class="form-check-label" for="model-default-new-${count}">Default model</label>
+                                    </div>
                                 </div>
                                 <div class="col-md-5">
                                     <label class="form-label">Model image</label>
@@ -434,6 +444,14 @@
 
             document.addEventListener('change', function (event) {
                 const input = event.target;
+                if (input.classList.contains('default-model-input') && input.checked) {
+                    document.querySelectorAll('.default-model-input').forEach(function (checkbox) {
+                        if (checkbox !== input) {
+                            checkbox.checked = false;
+                        }
+                    });
+                }
+
                 if (! input.classList.contains('image-preview-input')) {
                     return;
                 }

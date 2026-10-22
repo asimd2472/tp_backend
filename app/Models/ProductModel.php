@@ -22,6 +22,7 @@ class ProductModel extends Model
         'starting_price',
         'is_premium',
         'is_active',
+        'is_default',
         'main_image',
     ];
 
@@ -31,6 +32,7 @@ class ProductModel extends Model
             'starting_price' => 'decimal:2',
             'is_premium' => 'boolean',
             'is_active' => 'boolean',
+            'is_default' => 'boolean',
         ];
     }
 

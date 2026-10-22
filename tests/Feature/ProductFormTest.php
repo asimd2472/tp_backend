@@ -53,7 +53,41 @@ class ProductFormTest extends TestCase
             ->assertSee('models[0][designs][0][id]', false)
             ->assertSee('models[0][designs][0][shades][0][id]', false)
             ->assertSee('multiple', false)
+            ->assertSee('Default model', false)
             ->assertSee('Existing models are preserved on update', false);
+    }
+
+    public function test_admin_can_choose_one_default_model_per_product(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $product = Product::create([
+            'name' => 'Default model test',
+            'slug' => 'default-model-test',
+            'starting_price' => 0,
+        ]);
+        $modelA = $product->models()->create(['name' => 'Model A', 'slug' => 'default-model-a', 'is_default' => true]);
+        $modelB = $product->models()->create(['name' => 'Model B', 'slug' => 'default-model-b']);
+
+        $this->put(route('admin.products.update', $product), [
+            'name' => $product->name,
+            'models' => [
+                [
+                    'id' => $modelA->id,
+                    'name' => $modelA->name,
+                    'is_default' => '0',
+                ],
+                [
+                    'id' => $modelB->id,
+                    'name' => $modelB->name,
+                    'is_default' => '1',
+                ],
+            ],
+        ])->assertRedirect(route('admin.products.index'));
+
+        $this->assertDatabaseHas('product_models', ['id' => $modelA->id, 'is_default' => false]);
+        $this->assertDatabaseHas('product_models', ['id' => $modelB->id, 'is_default' => true]);
+        $this->assertSame(1, $product->models()->where('is_default', true)->count());
     }
 
     public function test_product_update_preserves_models_designs_shades_and_sizes_not_submitted(): void
