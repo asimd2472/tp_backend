@@ -61,6 +61,10 @@ In order to ensure that the Laravel community is welcoming to all, please review
 
 If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
 
+## Product Excel Shade Colors
+
+During product spreadsheet imports, shade names are matched case-insensitively against `public/excel/tata_pravesh_colors.json`. The matching `hex_code` is saved as the shade's color. If the shade is missing from the map or has no hex code, the importer uses `DEFAULT_COLOR_CODE` from `.env` (for example, `DEFAULT_COLOR_CODE=#1d82f5`).
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

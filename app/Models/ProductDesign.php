@@ -41,6 +41,6 @@ class ProductDesign extends Model
             return null;
         }
 
-        return str_starts_with($this->thumbnail_image, 'http') ? $this->thumbnail_image : asset('storage/'.$this->thumbnail_image);
+        return str_starts_with($this->thumbnail_image, 'http') ? $this->thumbnail_image : asset('uploads/'.ltrim($this->thumbnail_image, '/'));
     }
 }

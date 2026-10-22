@@ -45,6 +45,6 @@ class ProductShade extends Model
             return null;
         }
 
-        return str_starts_with($this->swatch_image, 'http') ? $this->swatch_image : asset('storage/'.$this->swatch_image);
+        return str_starts_with($this->swatch_image, 'http') ? $this->swatch_image : asset('uploads/'.ltrim($this->swatch_image, '/'));
     }
 }

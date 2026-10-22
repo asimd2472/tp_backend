@@ -75,16 +75,22 @@
                 <div class="col-lg-4">
                     <div class="mb-3">
                         <label class="form-label">Main product image</label>
-                        @if ($product->main_image)
-                            <img src="{{ asset('storage/'.$product->main_image) }}" class="img-fluid rounded mb-2" alt="{{ $product->name }}">
-                        @endif
-                        <input type="file" name="main_image" class="form-control" accept="image/jpeg,image/png,image/webp">
+                        <div class="image-upload-field">
+                            @if ($product->main_image)
+                                <div class="existing-image-previews mb-2">
+                                    <img src="{{ asset('storage/'.$product->main_image) }}" class="img-fluid rounded" style="max-height: 120px;" alt="{{ $product->name }}">
+                                </div>
+                            @endif
+                            <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                            <input type="file" name="main_image" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                        </div>
                     </div>
                 </div>
             </div>
 
             <hr class="my-4">
 
+            <p class="text-muted small">Updating this product only changes submitted fields. Existing models, designs, shades, sizes, and gallery images are preserved.</p>
             <div class="mb-3 d-flex justify-content-between align-items-center">
                 <h3 class="h5 mb-0">Models & designs</h3>
                 <button type="button" id="add-model" class="btn btn-outline-primary btn-sm">Add model</button>
@@ -111,19 +117,18 @@
                                 </div>
                                 <div class="col-md-5">
                                     <label class="form-label">Model image</label>
-                                    @if ($model->main_image)
-                                        <div class="mb-2">
-                                            <img src="{{ $model->main_image_url ?? asset('uploads/'.$model->main_image) }}" class="img-fluid rounded model-preview" style="max-height: 80px;" alt="{{ $model->name }}">
-                                        </div>
-                                    @else
-                                        <div class="mb-2 d-none">
-                                            <img src="" class="img-fluid rounded model-preview" style="max-height: 80px;" alt="Preview">
-                                        </div>
-                                    @endif
-                                    <input type="file" name="models[{{ $loop->index }}][main_image]" class="form-control model-image-input" accept="image/jpeg,image/png,image/webp">
+                                    <div class="image-upload-field">
+                                        @if ($model->main_image)
+                                            <div class="existing-image-previews mb-2">
+                                                <img src="{{ $model->main_image_url ?? asset('uploads/'.$model->main_image) }}" class="img-fluid rounded" style="max-height: 80px;" alt="{{ $model->name }}">
+                                            </div>
+                                        @endif
+                                        <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                        <input type="file" name="models[{{ $loop->index }}][main_image]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                                    </div>
                                 </div>
                                 <div class="col-md-2 text-end">
-                                    <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-model" disabled title="Existing models are preserved on update">Remove</button>
                                 </div>
                             </div>
 
@@ -135,6 +140,7 @@
                                             <span class="text-muted small">Toggle</span>
                                         </summary>
                                         <div class="mt-3">
+                                            <input type="hidden" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][id]" value="{{ $design->id }}">
                                             <div class="row g-3 align-items-center">
                                                 <div class="col-md-4">
                                                     <label class="form-label">Design name</label>
@@ -146,10 +152,18 @@
                                                 </div>
                                                 <div class="col-md-3">
                                                     <label class="form-label">Thumbnail</label>
-                                                    <input type="file" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                    <div class="image-upload-field">
+                                                        @if ($design->thumbnail_image)
+                                                            <div class="existing-image-previews mb-2">
+                                                                <img src="{{ $design->thumbnail_url }}" class="img-fluid rounded" style="max-height: 80px;" alt="{{ $design->name }}">
+                                                            </div>
+                                                        @endif
+                                                        <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                                        <input type="file" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][thumbnail]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                                                    </div>
                                                 </div>
                                                 <div class="col-md-2 text-end">
-                                                    <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
+                                                    <button type="button" class="btn btn-outline-danger btn-sm remove-design" disabled title="Existing designs are preserved on update">Remove</button>
                                                 </div>
                                             </div>
 
@@ -158,6 +172,7 @@
                                             <div class="shade-list">
                                                 @forelse ($design->shades as $shade)
                                                     <div class="border rounded p-3 mb-2 shade-block">
+                                                        <input type="hidden" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][id]" value="{{ $shade->id }}">
                                                         <div class="row g-3 align-items-center">
                                                             <div class="col-md-3">
                                                                 <label class="form-label">Shade name</label>
@@ -169,14 +184,32 @@
                                                             </div>
                                                             <div class="col-md-3">
                                                                 <label class="form-label">Swatch image</label>
-                                                                <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][swatch]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                                <div class="image-upload-field">
+                                                                    @if ($shade->swatch_image)
+                                                                        <div class="existing-image-previews mb-2">
+                                                                            <img src="{{ $shade->swatch_url }}" class="img-fluid rounded" style="max-height: 80px;" alt="{{ $shade->name }}">
+                                                                        </div>
+                                                                    @endif
+                                                                    <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                                                    <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][swatch]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                                                                </div>
                                                             </div>
                                                             <div class="col-md-3">
-                                                                <label class="form-label">Gallery image</label>
-                                                                <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][images][0][file]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                                                <label class="form-label">Gallery images</label>
+                                                                @if ($shade->images->isNotEmpty())
+                                                                    <div class="existing-image-previews d-flex flex-wrap gap-2 mb-2">
+                                                                        @foreach ($shade->images as $image)
+                                                                            <img src="{{ $image->url }}" class="rounded" style="height: 64px; width: 64px; object-fit: cover;" alt="Gallery image">
+                                                                        @endforeach
+                                                                    </div>
+                                                                @endif
+                                                                <div class="image-upload-field">
+                                                                    <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                                                    <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple>
+                                                                </div>
                                                             </div>
                                                             <div class="col-md-1 text-end">
-                                                                <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
+                                                                <button type="button" class="btn btn-outline-danger btn-sm remove-shade" disabled title="Existing shades are preserved on update">Remove</button>
                                                             </div>
                                                         </div>
                                                         <details class="mt-3 border rounded p-3 size-combinations">
@@ -189,6 +222,7 @@
                                                                     @forelse ($shade->sizes as $size)
                                                                         <div class="col-md-4">
                                                                             <div class="input-group">
+                                                                                <input type="hidden" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][id]" value="{{ $size->id }}">
                                                                                 <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][width_mm]" class="form-control" value="{{ $size->width_mm }}" placeholder="Width mm" required>
                                                                                 <span class="input-group-text">×</span>
                                                                                 <input type="number" name="models[{{ $loop->parent->parent->parent->index }}][designs][{{ $loop->parent->parent->index }}][shades][{{ $loop->parent->index }}][sizes][{{ $loop->index }}][height_mm]" class="form-control" value="{{ $size->height_mm }}" placeholder="Height mm" required>
@@ -251,11 +285,17 @@
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label">Swatch image</label>
-                                <input type="file" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][swatch]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                <div class="image-upload-field">
+                                    <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                    <input type="file" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][swatch]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                                </div>
                             </div>
                             <div class="col-md-3">
-                                <label class="form-label">Gallery image</label>
-                                <input type="file" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][images][0][file]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                <label class="form-label">Gallery images</label>
+                                <div class="image-upload-field">
+                                    <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                    <input type="file" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple>
+                                </div>
                             </div>
                             <div class="col-md-1 text-end">
                                 <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
@@ -305,7 +345,10 @@
                                 </div>
                                 <div class="col-md-3">
                                     <label class="form-label">Thumbnail</label>
-                                    <input type="file" name="models[${modelIndex}][designs][${count}][thumbnail]" class="form-control" accept="image/jpeg,image/png,image/webp">
+                                    <div class="image-upload-field">
+                                        <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                        <input type="file" name="models[${modelIndex}][designs][${count}][thumbnail]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                                    </div>
                                 </div>
                                 <div class="col-md-2 text-end">
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
@@ -338,10 +381,10 @@
                                 </div>
                                 <div class="col-md-5">
                                     <label class="form-label">Model image</label>
-                                    <div class="mb-2 d-none">
-                                        <img src="" class="img-fluid rounded model-preview" style="max-height: 80px;" alt="Preview">
+                                    <div class="image-upload-field">
+                                        <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                        <input type="file" name="models[${count}][main_image]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
                                     </div>
-                                    <input type="file" name="models[${count}][main_image]" class="form-control model-image-input" accept="image/jpeg,image/png,image/webp">
                                 </div>
                                 <div class="col-md-2 text-end">
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
@@ -355,34 +398,13 @@
                 modelList.insertAdjacentHTML('beforeend', template);
             }
 
-            function bindModelImagePreview(input) {
-                const preview = input.closest('.row, .col-md-5')?.querySelector('.model-preview');
-                if (! preview) {
-                    return;
-                }
-
-                input.addEventListener('change', function () {
-                    const file = this.files && this.files[0];
-                    if (! file) {
-                        preview.src = '';
-                        preview.parentElement?.classList.add('d-none');
-                        return;
-                    }
-
-                    const reader = new FileReader();
-                    reader.onload = function (event) {
-                        preview.src = event.target.result;
-                        preview.parentElement?.classList.remove('d-none');
-                    };
-                    reader.readAsDataURL(file);
-                });
-            }
-
-            document.querySelectorAll('.model-image-input').forEach(bindModelImagePreview);
             document.getElementById('add-model')?.addEventListener('click', addModelBlock);
 
             document.addEventListener('click', function (event) {
                 const target = event.target;
+                if (target.disabled) {
+                    return;
+                }
                 if (target.classList.contains('remove-model')) {
                     target.closest('.model-block').remove();
                     return;
@@ -408,6 +430,34 @@
                     const designIndex = [...modelBlock.querySelectorAll('.design-block')].indexOf(designBlock);
                     addShadeBlock(modelIndex, designIndex);
                 }
+            });
+
+            document.addEventListener('change', function (event) {
+                const input = event.target;
+                if (! input.classList.contains('image-preview-input')) {
+                    return;
+                }
+
+                const previewList = input.closest('.image-upload-field')?.querySelector('.image-upload-previews');
+                if (! previewList) {
+                    return;
+                }
+
+                previewList.replaceChildren();
+                Array.from(input.files || []).forEach(function (file) {
+                    if (! file.type.startsWith('image/')) {
+                        return;
+                    }
+
+                    const preview = document.createElement('img');
+                    preview.src = URL.createObjectURL(file);
+                    preview.alt = file.name;
+                    preview.className = 'rounded';
+                    preview.style.height = '64px';
+                    preview.style.width = '64px';
+                    preview.style.objectFit = 'cover';
+                    previewList.appendChild(preview);
+                });
             });
         })();
     </script>

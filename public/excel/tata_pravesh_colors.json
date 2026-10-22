@@ -1,0 +1,132 @@
+[
+  {
+    "name": "Sun Teak",
+    "hex_code": "#C58A45",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "Lava Teak",
+    "hex_code": "#85552E",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "Trunk Mahogany",
+    "hex_code": "#5C2525",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "Nest Mahogany",
+    "hex_code": "#743B32",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "B-87-02",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "LB-2201",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "B-12-01",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "B-11-13",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "LB-78-05",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "B-78-05",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "R-78-05",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "16-22-01",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "16-78-05",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "LB-87-02",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "B-22-01",
+    "hex_code": null,
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "Forest Brown",
+    "hex_code": "#654321",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "Snowflake White",
+    "hex_code": "#F5F5F0",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "Graphite Grey",
+    "hex_code": "#41424C",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "Metallic Grey",
+    "hex_code": "#8A8D91",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "Orange Brown",
+    "hex_code": "#B5651D",
+    "hex_code_type": "approximate_display_colour"
+  },
+  {
+    "name": "NS 01",
+    "hex_code": "#1A1C1E",
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "NS 02",
+    "hex_code": "#00B0B9",
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "NS 03",
+    "hex_code": "#F4F4F4",
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "NS 04",
+    "hex_code": "#442F29",
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "NS 05",
+    "hex_code": "#D6D1CA",
+    "hex_code_type": "unknown_requires_official_swatch"
+  },
+  {
+    "name": "NS 06",
+    "hex_code": "#003082",
+    "hex_code_type": "unknown_requires_official_swatch"
+  }
+]

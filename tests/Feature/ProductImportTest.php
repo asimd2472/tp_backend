@@ -37,6 +37,7 @@ class ProductImportTest extends TestCase
 
         $this->assertDatabaseHas('product_shades', [
             'name' => 'Sun Teak',
+            'color_hex' => '#C58A45',
         ]);
     }
 }

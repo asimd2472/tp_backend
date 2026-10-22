@@ -19,6 +19,7 @@ class SpreadsheetImporter
             return ['products' => 0, 'designs' => 0, 'shades' => 0, 'errors' => ['No data was found in the uploaded spreadsheet.']];
         }
 
+        $shadeColors = $this->loadShadeColors();
         $products = 0;
         $designs = 0;
         $shades = 0;
@@ -32,7 +33,7 @@ class SpreadsheetImporter
         for ($offset = 0; $offset < count($rows); $offset += $batchSize) {
             $batch = array_slice($rows, $offset, $batchSize);
 
-            DB::transaction(function () use ($batch, &$products, &$designs, &$shades, &$errors, &$productCache, &$designCache, &$shadeCache, $offset) {
+            DB::transaction(function () use ($batch, &$products, &$designs, &$shades, &$errors, &$productCache, &$designCache, &$shadeCache, $shadeColors, $offset) {
                 foreach ($batch as $index => $row) {
                     $globalIndex = $offset + $index;
                     $normalized = $this->normalizeRow($row);
@@ -95,12 +96,18 @@ class SpreadsheetImporter
                         if ($shadeName !== '') {
                             $shadeKey = $design->getKey().':'.$this->cacheKey($shadeName);
                             if (! isset($shadeCache[$shadeKey])) {
-                                $shadeCache[$shadeKey] = $design->shades()->firstOrCreate([
+                                $colorHex = $this->resolveShadeColor($shadeName, $shadeColors);
+                                $shade = $design->shades()->firstOrCreate([
                                     'name' => $shadeName,
                                 ], [
-                                    'color_hex' => $normalized['color_hex'] ?? null,
+                                    'color_hex' => $colorHex,
                                     'sort_order' => 0,
                                 ]);
+                                if ($shade->color_hex !== $colorHex) {
+                                    $shade->color_hex = $colorHex;
+                                    $shade->save();
+                                }
+                                $shadeCache[$shadeKey] = $shade;
                             }
                             $shade = $shadeCache[$shadeKey];
                             $shades++;
@@ -144,6 +151,55 @@ class SpreadsheetImporter
             'shades' => $shades,
             'errors' => $errors,
         ];
+    }
+
+    protected function loadShadeColors(): array
+    {
+        $path = base_path('public/excel/tata_pravesh_colors.json');
+        if (! is_file($path) || ! is_readable($path)) {
+            throw new \RuntimeException('Unable to read the product shade color map at '.$path);
+        }
+
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new \RuntimeException('Unable to read the product shade color map at '.$path);
+        }
+
+        $entries = json_decode($contents, true, 512, JSON_THROW_ON_ERROR);
+        if (! is_array($entries)) {
+            throw new \UnexpectedValueException('The product shade color map must contain a JSON array.');
+        }
+
+        $colors = [];
+        foreach ($entries as $entry) {
+            if (! is_array($entry) || ! is_string($entry['name'] ?? null) || trim($entry['name']) === '') {
+                throw new \UnexpectedValueException('Each product shade color entry must have a non-empty name.');
+            }
+
+            $hexCode = $entry['hex_code'] ?? null;
+            if ($hexCode !== null && (! is_string($hexCode) || preg_match('/^#[0-9a-fA-F]{6}$/', $hexCode) !== 1)) {
+                throw new \UnexpectedValueException('Invalid hex_code for product shade '.$entry['name'].'.');
+            }
+
+            $colors[$this->cacheKey($entry['name'])] = $hexCode;
+        }
+
+        return $colors;
+    }
+
+    protected function resolveShadeColor(string $shadeName, array $shadeColors): string
+    {
+        $colorHex = $shadeColors[$this->cacheKey($shadeName)] ?? null;
+        if ($colorHex !== null) {
+            return $colorHex;
+        }
+
+        $defaultColor = config('app.default_color_code');
+        if (! is_string($defaultColor) || preg_match('/^#[0-9a-fA-F]{6}$/', $defaultColor) !== 1) {
+            throw new \RuntimeException('DEFAULT_COLOR_CODE must be configured as a six-digit hex color.');
+        }
+
+        return $defaultColor;
     }
 
     protected function readRows(string $path): array
@@ -291,7 +347,6 @@ class SpreadsheetImporter
             'model' => $lookup['models'] ?? $lookup['model'] ?? null,
             'design' => $lookup['designs'] ?? $lookup['design'] ?? null,
             'shade' => $lookup['shades'] ?? $lookup['shade'] ?? null,
-            'color_hex' => $lookup['color'] ?? $lookup['colour'] ?? $lookup['colorhex'] ?? $lookup['color_hex'] ?? null,
             'size' => $lookup['sizes'] ?? $lookup['size'] ?? null,
         ];
     }

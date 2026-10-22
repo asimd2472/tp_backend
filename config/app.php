@@ -54,6 +54,8 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'default_color_code' => env('DEFAULT_COLOR_CODE'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -5,14 +5,15 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductDesign;
-use App\Models\ProductImage;
 use App\Models\ProductModel;
 use App\Models\ProductShade;
-use App\Models\ProductSize;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -48,6 +49,11 @@ class ProductController extends Controller
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
+            'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
+            'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $product = DB::transaction(function () use ($request, $validated) {
@@ -104,6 +110,11 @@ class ProductController extends Controller
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
+            'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
+            'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         DB::transaction(function () use ($request, $product, $validated) {
@@ -202,8 +213,6 @@ class ProductController extends Controller
 
     protected function syncModels(Product $product, array $models): void
     {
-        $modelIds = [];
-
         foreach ($models as $index => $modelData) {
             if (! is_array($modelData)) {
                 continue;
@@ -218,14 +227,20 @@ class ProductController extends Controller
             $model->fill([
                 'name' => $name,
                 'slug' => $this->resolveModelSlug($modelData['slug'] ?? null, $name, $model),
-                'short_description' => $modelData['short_description'] ?? null,
-                'description' => $modelData['description'] ?? null,
-                'starting_price' => (float) ($modelData['starting_price'] ?? 0),
-                'is_premium' => (bool) ($modelData['is_premium'] ?? false),
-                'is_active' => (bool) ($modelData['is_active'] ?? true),
             ]);
+            foreach ([
+                'short_description' => null,
+                'description' => null,
+                'starting_price' => 0,
+                'is_premium' => false,
+                'is_active' => true,
+            ] as $attribute => $default) {
+                if (array_key_exists($attribute, $modelData) || ! $model->exists) {
+                    $model->{$attribute} = $modelData[$attribute] ?? $default;
+                }
+            }
 
-            if (isset($modelData['main_image']) && $modelData['main_image'] instanceof \Illuminate\Http\UploadedFile) {
+            if (isset($modelData['main_image']) && $modelData['main_image'] instanceof UploadedFile) {
                 if ($model->main_image) {
                     Storage::disk('public')->delete($model->main_image);
                 }
@@ -234,18 +249,15 @@ class ProductController extends Controller
             }
 
             $model->save();
-            $modelIds[] = $model->id;
 
-            $this->syncDesigns($model, $modelData['designs'] ?? []);
+            if (isset($modelData['designs']) && is_array($modelData['designs'])) {
+                $this->syncDesigns($model, $modelData['designs']);
+            }
         }
-
-        $product->models()->whereNotIn('id', $modelIds)->delete();
     }
 
     protected function syncDesigns(ProductModel $model, array $designs): void
     {
-        $designIds = [];
-
         foreach ($designs as $index => $designData) {
             if (! is_array($designData)) {
                 continue;
@@ -261,27 +273,26 @@ class ProductController extends Controller
                 'product_id' => $model->product_id,
                 'product_model_id' => $model->id,
                 'name' => $name,
-                'code' => $designData['code'] ?? null,
                 'sort_order' => $index,
             ]);
+            if (array_key_exists('code', $designData) || ! $design->exists) {
+                $design->code = $designData['code'] ?? null;
+            }
 
-            if (isset($designData['thumbnail']) && is_uploaded_file($designData['thumbnail'])) {
+            if (($designData['thumbnail'] ?? null) instanceof UploadedFile) {
                 $design->thumbnail_image = $designData['thumbnail']->store('products/designs', 'public');
             }
 
             $design->save();
-            $designIds[] = $design->id;
 
-            $this->syncShades($design, $designData['shades'] ?? []);
+            if (isset($designData['shades']) && is_array($designData['shades'])) {
+                $this->syncShades($design, $designData['shades']);
+            }
         }
-
-        $model->designs()->whereNotIn('id', $designIds)->delete();
     }
 
     protected function syncShades(ProductDesign $design, array $shades): void
     {
-        $shadeIds = [];
-
         foreach ($shades as $index => $shadeData) {
             if (! is_array($shadeData)) {
                 continue;
@@ -295,67 +306,66 @@ class ProductController extends Controller
             $shade = $design->shades()->firstOrNew(['id' => $shadeData['id'] ?? null]);
             $shade->fill([
                 'name' => $name,
-                'color_hex' => $shadeData['color_hex'] ?? null,
                 'sort_order' => $index,
             ]);
+            if (array_key_exists('color_hex', $shadeData) || ! $shade->exists) {
+                $shade->color_hex = $shadeData['color_hex'] ?? null;
+            }
 
-            if (isset($shadeData['swatch']) && is_uploaded_file($shadeData['swatch'])) {
-                $shade->swatch_image = $shadeData['swatch']->store('products/shades', 'public');
+            if (($shadeData['swatch'] ?? null) instanceof UploadedFile) {
+                $shade->swatch_image = $this->storePublicUpload($shadeData['swatch'], 'products/shades');
             }
 
             $shade->save();
-            $shadeIds[] = $shade->id;
 
-            $this->syncShadeImages($shade, $shadeData['images'] ?? []);
-            $this->syncSizes($shade, $shadeData['sizes'] ?? []);
+            if (isset($shadeData['images']) && is_array($shadeData['images'])) {
+                $this->syncShadeImages($shade, $shadeData['images']);
+            }
+            if (isset($shadeData['sizes']) && is_array($shadeData['sizes'])) {
+                $this->syncSizes($shade, $shadeData['sizes']);
+            }
         }
-
-        $design->shades()->whereNotIn('id', $shadeIds)->delete();
     }
 
     protected function syncShadeImages(ProductShade $shade, array $images): void
     {
-        $allowed = [];
-
         foreach ($images as $index => $imageData) {
             if (! is_array($imageData)) {
                 continue;
             }
 
-            if (($imageData['remove'] ?? false) === true) {
-                $existing = ProductImage::query()->find($imageData['id'] ?? null);
-                if ($existing) {
-                    Storage::disk('public')->delete($existing->image_path);
-                    $existing->delete();
-                }
-                continue;
-            }
-
             $file = $imageData['file'] ?? null;
-            if ($file && $file instanceof \Illuminate\Http\UploadedFile) {
-                $path = $file->store('products/gallery', 'public');
-                $allowed[] = $shade->images()->create([
+            $files = is_array($file) ? $file : [$file];
+            foreach ($files as $fileIndex => $uploadedFile) {
+                if (! $uploadedFile instanceof UploadedFile) {
+                    continue;
+                }
+
+                $path = $this->storePublicUpload($uploadedFile, 'products/gallery');
+                $hasPrimary = $shade->images()->where('is_primary', true)->exists();
+                $shade->images()->create([
                     'image_path' => $path,
-                    'is_primary' => (bool) ($imageData['is_primary'] ?? false),
-                    'sort_order' => $index,
+                    'is_primary' => (bool) ($imageData['is_primary'] ?? false) || ! $hasPrimary,
+                    'sort_order' => $index + $fileIndex,
                 ]);
             }
         }
+    }
 
-        if (empty($allowed)) {
-            return;
-        }
+    protected function storePublicUpload(UploadedFile $file, string $directory): string
+    {
+        $relativeDirectory = trim($directory, '/\\');
+        $destination = public_path('uploads/'.$relativeDirectory);
+        File::ensureDirectoryExists($destination);
 
-        $primary = $shade->images()->where('is_primary', true)->first();
-        if (! $primary) {
-            $shade->images()->first()?->update(['is_primary' => true]);
-        }
+        $filename = Str::uuid().'.'.$file->extension();
+        $file->move($destination, $filename);
+
+        return $relativeDirectory.'/'.$filename;
     }
 
     protected function syncSizes(ProductShade $shade, array $sizes): void
     {
-        $sizeIds = [];
-
         foreach ($sizes as $index => $sizeData) {
             if (! is_array($sizeData)) {
                 continue;
@@ -368,18 +378,13 @@ class ProductController extends Controller
                 continue;
             }
 
-            $size = $shade->sizes()->firstOrCreate([
+            $size = $shade->sizes()->firstOrNew(['id' => $sizeData['id'] ?? null]);
+            $size->fill([
                 'width_mm' => $width,
                 'height_mm' => $height,
-            ], [
                 'sort_order' => $index,
             ]);
-
-            $size->sort_order = $index;
             $size->save();
-            $sizeIds[] = $size->id;
         }
-
-        $shade->sizes()->whereNotIn('id', $sizeIds)->delete();
     }
 }
