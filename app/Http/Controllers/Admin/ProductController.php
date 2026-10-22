@@ -8,6 +8,7 @@ use App\Models\ProductDesign;
 use App\Models\ProductModel;
 use App\Models\ProductShade;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -147,6 +148,79 @@ class ProductController extends Controller
         });
 
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
+    }
+
+    public function uploadModelImage(Request $request, Product $product, ProductModel $model): JsonResponse
+    {
+        abort_unless((int) $model->product_id === (int) $product->id, 404);
+
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+        ]);
+
+        $oldImage = $model->main_image;
+        $path = $this->storePublicUpload($validated['image'], 'model');
+        $model->update(['main_image' => $path]);
+
+        if ($oldImage && ! str_starts_with($oldImage, 'http')) {
+            File::delete(public_path('uploads/'.$oldImage));
+        }
+
+        return response()->json([
+            'message' => 'Model image uploaded successfully.',
+            'image_url' => asset('uploads/'.$path),
+        ]);
+    }
+
+    public function uploadShadeImage(
+        Request $request,
+        Product $product,
+        ProductModel $model,
+        ProductDesign $design,
+        ProductShade $shade,
+        string $kind,
+    ): JsonResponse {
+        abort_unless(
+            (int) $model->product_id === (int) $product->id
+                && (int) $design->product_id === (int) $product->id
+                && (int) $design->product_model_id === (int) $model->id
+                && (int) $shade->product_design_id === (int) $design->id,
+            404,
+        );
+        abort_unless(in_array($kind, ['swatch', 'gallery'], true), 404);
+
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+        ]);
+        $file = $validated['image'];
+
+        if ($kind === 'swatch') {
+            $oldImage = $shade->swatch_image;
+            $path = $this->storePublicUpload($file, 'products/shades');
+            $shade->update(['swatch_image' => $path]);
+
+            if ($oldImage && ! str_starts_with($oldImage, 'http')) {
+                File::delete(public_path('uploads/'.$oldImage));
+            }
+
+            return response()->json([
+                'message' => 'Swatch image uploaded successfully.',
+                'image_url' => asset('uploads/'.$path),
+            ]);
+        }
+
+        $path = $this->storePublicUpload($file, 'products/gallery');
+        $hasPrimary = $shade->images()->where('is_primary', true)->exists();
+        $image = $shade->images()->create([
+            'image_path' => $path,
+            'is_primary' => ! $hasPrimary,
+            'sort_order' => (int) $shade->images()->max('sort_order') + 1,
+        ]);
+
+        return response()->json([
+            'message' => 'Gallery image uploaded successfully.',
+            'image_url' => $image->url,
+        ]);
     }
 
     public function destroy(Product $product): RedirectResponse

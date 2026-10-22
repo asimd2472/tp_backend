@@ -20,6 +20,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::resource('roles', RoleController::class)->except(['show']);
     Route::resource('products', ProductController::class)->except(['show']);
+    Route::post('/products/{product}/models/{model}/image', [ProductController::class, 'uploadModelImage'])
+        ->name('products.models.image');
+    Route::post('/products/{product}/models/{model}/designs/{design}/shades/{shade}/{kind}', [ProductController::class, 'uploadShadeImage'])
+        ->whereIn('kind', ['swatch', 'gallery'])
+        ->name('products.shades.image');
     Route::get('/products/import', [ProductImportController::class, 'index'])->name('products.import.index');
     Route::post('/products/import', [ProductImportController::class, 'store'])->name('products.import.store');
     Route::get('/products/french-door', [FrenchDoorController::class, 'index'])->name('products.french-door.index');

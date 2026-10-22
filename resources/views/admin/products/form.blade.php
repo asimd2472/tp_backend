@@ -140,7 +140,10 @@
                                             </div>
                                         @endif
                                         <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
-                                        <input type="file" name="models[{{ $loop->index }}][main_image]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                                        <input type="file" name="models[{{ $loop->index }}][main_image]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" data-upload-url="{{ $isEdit ? route('admin.products.models.image', [$product, $model]) : '' }}">
+                                        @if ($isEdit)
+                                            <div class="small text-muted model-image-upload-status" aria-live="polite"></div>
+                                        @endif
                                     </div>
                                 </div>
                                 <div class="col-md-2 text-end">
@@ -207,21 +210,27 @@
                                                                         </div>
                                                                     @endif
                                                                     <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
-                                                                    <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][swatch]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                                                                    <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][swatch]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" data-upload-url="{{ $isEdit ? route('admin.products.shades.image', [$product, $model, $design, $shade, 'swatch']) : '' }}" data-upload-mode="replace">
+                                                                    @if ($isEdit)
+                                                                        <div class="small text-muted image-upload-status" aria-live="polite"></div>
+                                                                    @endif
                                                                 </div>
                                                             </div>
                                                             <div class="col-md-3">
                                                                 <label class="form-label">Gallery images</label>
-                                                                @if ($shade->images->isNotEmpty())
-                                                                    <div class="existing-image-previews d-flex flex-wrap gap-2 mb-2">
-                                                                        @foreach ($shade->images as $image)
-                                                                            <img src="{{ $image->url }}" class="rounded" style="height: 64px; width: 64px; object-fit: cover;" alt="Gallery image">
-                                                                        @endforeach
-                                                                    </div>
-                                                                @endif
                                                                 <div class="image-upload-field">
+                                                                    @if ($shade->images->isNotEmpty())
+                                                                        <div class="existing-image-previews d-flex flex-wrap gap-2 mb-2">
+                                                                            @foreach ($shade->images as $image)
+                                                                                <img src="{{ $image->url }}" class="rounded" style="height: 64px; width: 64px; object-fit: cover;" alt="Gallery image">
+                                                                            @endforeach
+                                                                        </div>
+                                                                    @endif
                                                                     <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
-                                                                    <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple>
+                                                                    <input type="file" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple data-upload-url="{{ $isEdit ? route('admin.products.shades.image', [$product, $model, $design, $shade, 'gallery']) : '' }}" data-upload-mode="append">
+                                                                    @if ($isEdit)
+                                                                        <div class="small text-muted image-upload-status" aria-live="polite"></div>
+                                                                    @endif
                                                                 </div>
                                                             </div>
                                                             <div class="col-md-1 text-end">
@@ -285,6 +294,19 @@
             const productForm = modelList.closest('form');
 
             productForm?.addEventListener('submit', function (event) {
+                const separatelyUploadedInputs = Array.from(productForm.querySelectorAll('input[type="file"][data-upload-url]'));
+                if (separatelyUploadedInputs.some(input => input.dataset.uploading === '1')) {
+                    event.preventDefault();
+                    window.alert('Please wait for the model image uploads to finish, then save the product.');
+                    return;
+                }
+
+                if (separatelyUploadedInputs.some(input => input.dataset.uploadFailed === '1')) {
+                    event.preventDefault();
+                    window.alert('Please fix the failed image upload before saving the product.');
+                    return;
+                }
+
                 const selectedFiles = Array.from(productForm.querySelectorAll('input[type="file"]'))
                     .reduce((total, input) => total + input.files.length, 0);
 
@@ -293,6 +315,81 @@
                     window.alert('You can upload up to 100 images per product save.');
                 }
             });
+
+            async function uploadSelectedImages(input) {
+                const files = Array.from(input.files || []);
+                if (!files.length || !input.dataset.uploadUrl) {
+                    return;
+                }
+
+                const field = input.closest('.image-upload-field');
+                const status = field?.querySelector('.image-upload-status, .model-image-upload-status');
+                const previewList = field?.querySelector('.image-upload-previews');
+                const mode = input.dataset.uploadMode || 'replace';
+                input.dataset.uploading = '1';
+                delete input.dataset.uploadFailed;
+                if (status) {
+                    status.className = 'small text-muted model-image-upload-status';
+                    status.textContent = `Uploading ${files.length} image${files.length === 1 ? '' : 's'}…`;
+                }
+
+                try {
+                    let preview = field?.querySelector('.existing-image-previews');
+                    if (!preview && field && mode === 'append') {
+                        preview = document.createElement('div');
+                        preview.className = 'existing-image-previews d-flex flex-wrap gap-2 mb-2';
+                        field.insertBefore(preview, previewList);
+                    }
+
+                    for (const file of files) {
+                        const body = new FormData();
+                        body.append('image', file);
+                        const response = await fetch(input.dataset.uploadUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                            },
+                            body,
+                        });
+                        const result = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            const validationMessage = Object.values(result.errors || {}).flat()[0];
+                            throw new Error(validationMessage || result.message || 'Upload failed. Please try again.');
+                        }
+
+                        let image = mode === 'append' ? null : preview?.querySelector('img');
+                        if (!image && preview) {
+                            image = document.createElement('img');
+                            image.className = mode === 'append' ? 'rounded' : 'img-fluid rounded';
+                            image.style.height = mode === 'append' ? '64px' : '80px';
+                            image.style.width = mode === 'append' ? '64px' : 'auto';
+                            image.style.objectFit = 'cover';
+                            image.alt = mode === 'append' ? 'Gallery image' : 'Uploaded image';
+                            preview.appendChild(image);
+                        }
+                        if (image) {
+                            image.src = result.image_url;
+                        }
+                    }
+
+                    previewList?.replaceChildren();
+                    input.value = '';
+                    if (status) {
+                        status.className = 'small text-success model-image-upload-status';
+                        status.textContent = `${files.length} image${files.length === 1 ? '' : 's'} uploaded. Save the product to finish.`;
+                    }
+                } catch (error) {
+                    input.dataset.uploadFailed = '1';
+                    input.value = '';
+                    if (status) {
+                        status.className = 'small text-danger model-image-upload-status';
+                        status.textContent = `${error.message} Successfully uploaded files are kept. Select only any files that failed.`;
+                    }
+                } finally {
+                    delete input.dataset.uploading;
+                }
+            }
 
             function addShadeBlock(modelIndex, designIndex) {
                 const modelBlock = modelList.querySelectorAll('.model-block')[modelIndex];
@@ -476,6 +573,10 @@
 
                 if (! input.classList.contains('image-preview-input')) {
                     return;
+                }
+
+                if (input.dataset.uploadUrl) {
+                    uploadSelectedImages(input);
                 }
 
                 const previewList = input.closest('.image-upload-field')?.querySelector('.image-upload-previews');
