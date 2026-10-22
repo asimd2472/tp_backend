@@ -12,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -71,7 +70,9 @@ class ProductController extends Controller
             ]);
 
             if ($request->hasFile('main_image')) {
-                $product->update(['main_image' => $request->file('main_image')->store('products', 'public')]);
+                $product->update([
+                    'main_image' => $this->storePublicUpload($request->file('main_image'), 'products'),
+                ]);
             }
 
             $models = $request->all()['models'] ?? $request->input('models', []);
@@ -134,10 +135,10 @@ class ProductController extends Controller
 
             if ($request->hasFile('main_image')) {
                 if ($product->main_image) {
-                    Storage::disk('public')->delete($product->main_image);
+                    File::delete(public_path('uploads/'.$product->main_image));
                 }
 
-                $data['main_image'] = $request->file('main_image')->store('products', 'public');
+                $data['main_image'] = $this->storePublicUpload($request->file('main_image'), 'products');
             }
 
             $product->update($data);
@@ -155,7 +156,7 @@ class ProductController extends Controller
                 foreach ($design->shades as $shade) {
                     foreach ($shade->images as $image) {
                         if ($image->image_path) {
-                            Storage::disk('public')->delete($image->image_path);
+                            File::delete(public_path('uploads/'.$image->image_path));
                         }
                     }
                 }
@@ -247,10 +248,10 @@ class ProductController extends Controller
 
             if (isset($modelData['main_image']) && $modelData['main_image'] instanceof UploadedFile) {
                 if ($model->main_image) {
-                    Storage::disk('public')->delete($model->main_image);
+                    File::delete(public_path('uploads/'.$model->main_image));
                 }
 
-                $model->main_image = $modelData['main_image']->store('model', 'public');
+                $model->main_image = $this->storePublicUpload($modelData['main_image'], 'model');
             }
 
             $model->save();
@@ -288,7 +289,11 @@ class ProductController extends Controller
             }
 
             if (($designData['thumbnail'] ?? null) instanceof UploadedFile) {
-                $design->thumbnail_image = $designData['thumbnail']->store('products/designs', 'public');
+                if ($design->thumbnail_image) {
+                    File::delete(public_path('uploads/'.$design->thumbnail_image));
+                }
+
+                $design->thumbnail_image = $this->storePublicUpload($designData['thumbnail'], 'products/designs');
             }
 
             $design->save();

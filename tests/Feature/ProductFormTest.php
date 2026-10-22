@@ -54,7 +54,42 @@ class ProductFormTest extends TestCase
             ->assertSee('models[0][designs][0][shades][0][id]', false)
             ->assertSee('multiple', false)
             ->assertSee('Default model', false)
+            ->assertSee('up to 100 images per product save', false)
             ->assertSee('Existing models are preserved on update', false);
+    }
+
+    public function test_edit_form_uses_correct_upload_names_for_each_model_design_and_shade(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $product = Product::create([
+            'name' => 'Nested image field test',
+            'slug' => 'nested-image-field-test',
+            'starting_price' => 0,
+        ]);
+
+        foreach (['A', 'B'] as $letter) {
+            $model = $product->models()->create([
+                'name' => 'Model '.$letter,
+                'slug' => 'nested-field-model-'.strtolower($letter),
+            ]);
+            $design = $model->designs()->create([
+                'product_id' => $product->id,
+                'name' => 'Design '.$letter,
+            ]);
+            $design->shades()->create(['name' => 'Shade '.$letter, 'color_hex' => '#112233']);
+        }
+
+        $this->get(route('admin.products.edit', $product))
+            ->assertOk()
+            ->assertSee('name="models[0][main_image]"', false)
+            ->assertSee('name="models[0][designs][0][thumbnail]"', false)
+            ->assertSee('name="models[0][designs][0][shades][0][swatch]"', false)
+            ->assertSee('name="models[0][designs][0][shades][0][images][0][file][]"', false)
+            ->assertSee('name="models[1][main_image]"', false)
+            ->assertSee('name="models[1][designs][0][thumbnail]"', false)
+            ->assertSee('name="models[1][designs][0][shades][0][swatch]"', false)
+            ->assertSee('name="models[1][designs][0][shades][0][images][0][file][]"', false);
     }
 
     public function test_admin_can_choose_one_default_model_per_product(): void
@@ -88,6 +123,27 @@ class ProductFormTest extends TestCase
         $this->assertDatabaseHas('product_models', ['id' => $modelA->id, 'is_default' => false]);
         $this->assertDatabaseHas('product_models', ['id' => $modelB->id, 'is_default' => true]);
         $this->assertSame(1, $product->models()->where('is_default', true)->count());
+    }
+
+    public function test_product_main_image_is_uploaded_directly_to_public_uploads(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->post(route('admin.products.store'), [
+            'name' => 'Product main image test',
+            'main_image' => UploadedFile::fake()->image('product-main.jpg'),
+        ])->assertRedirect(route('admin.products.index'));
+
+        $product = Product::query()->where('name', 'Product main image test')->firstOrFail();
+        $imagePath = public_path('uploads/'.$product->main_image);
+
+        try {
+            $this->assertStringStartsWith('products/', $product->main_image);
+            $this->assertFileExists($imagePath);
+            $this->assertSame(asset('uploads/'.$product->main_image), $product->thumbnail_url);
+        } finally {
+            File::delete($imagePath);
+        }
     }
 
     public function test_product_update_preserves_models_designs_shades_and_sizes_not_submitted(): void
@@ -227,34 +283,14 @@ class ProductFormTest extends TestCase
 
     public function test_model_image_upload_is_saved_to_the_model_uploads_folder(): void
     {
-        Storage::fake('public');
         $this->actingAs(User::factory()->admin()->create());
-
-        $fixturePath = __DIR__.'/../fixtures/test-model-image.png';
-        if (! file_exists($fixturePath)) {
-            $image = imagecreatetruecolor(80, 60);
-            $bg = imagecolorallocate($image, 20, 30, 45);
-            $fg = imagecolorallocate($image, 255, 255, 255);
-            imagefill($image, 0, 0, $bg);
-            imagestring($image, 5, 18, 20, 'MODEL', $fg);
-            imagepng($image, $fixturePath);
-            imagedestroy($image);
-        }
-
-        $file = new UploadedFile(
-            $fixturePath,
-            'test-model-image.png',
-            'image/png',
-            null,
-            true,
-        );
 
         $this->post(route('admin.products.store'), [
             'name' => 'Model upload test',
             'category' => 'Doors',
             'models' => [[
                 'name' => 'Model A',
-                'main_image' => $file,
+                'main_image' => UploadedFile::fake()->image('test-model-image.png'),
                 'designs' => [],
             ]],
         ]);
@@ -264,6 +300,251 @@ class ProductFormTest extends TestCase
 
         $this->assertNotNull($model);
         $this->assertStringContainsString('model/', $model->main_image ?? '');
-        Storage::disk('public')->assertExists($model->main_image);
+        $imagePath = public_path('uploads/'.$model->main_image);
+        try {
+            $this->assertFileExists($imagePath);
+        } finally {
+            File::delete($imagePath);
+        }
+    }
+
+    public function test_create_uploads_model_and_design_images_for_multiple_models(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $payload = [
+            'name' => 'Multi model upload create',
+            'models' => [
+                [
+                    'name' => 'Model A',
+                    'main_image' => UploadedFile::fake()->image('model-a.jpg'),
+                    'designs' => [[
+                        'name' => 'Design A',
+                        'thumbnail' => UploadedFile::fake()->image('design-a.jpg'),
+                        'shades' => [[
+                            'name' => 'Shade A',
+                            'color_hex' => '#112233',
+                            'swatch' => UploadedFile::fake()->image('swatch-a.jpg'),
+                            'images' => [[
+                                'file' => [
+                                    UploadedFile::fake()->image('gallery-a1.jpg'),
+                                    UploadedFile::fake()->image('gallery-a2.jpg'),
+                                ],
+                            ]],
+                        ]],
+                    ]],
+                ],
+                [
+                    'name' => 'Model B',
+                    'main_image' => UploadedFile::fake()->image('model-b.jpg'),
+                    'designs' => [[
+                        'name' => 'Design B',
+                        'thumbnail' => UploadedFile::fake()->image('design-b.jpg'),
+                        'shades' => [[
+                            'name' => 'Shade B',
+                            'color_hex' => '#445566',
+                            'swatch' => UploadedFile::fake()->image('swatch-b.jpg'),
+                            'images' => [[
+                                'file' => [
+                                    UploadedFile::fake()->image('gallery-b1.jpg'),
+                                    UploadedFile::fake()->image('gallery-b2.jpg'),
+                                ],
+                            ]],
+                        ]],
+                    ]],
+                ],
+            ],
+        ];
+
+        $this->post(route('admin.products.store'), $payload)
+            ->assertRedirect(route('admin.products.index'));
+
+        $product = Product::query()->where('name', $payload['name'])->firstOrFail();
+        try {
+            $this->assertUploadedProductImagesExist($product, 2, 2, 2, 4);
+        } finally {
+            $this->deleteUploadedProductImages($product);
+        }
+    }
+
+    public function test_update_uploads_model_and_design_images_for_multiple_models(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $product = Product::create([
+            'name' => 'Multi model upload update',
+            'slug' => 'multi-model-upload-update',
+            'starting_price' => 0,
+        ]);
+        $models = [];
+        foreach (['A', 'B'] as $letter) {
+            $model = $product->models()->create([
+                'name' => 'Model '.$letter,
+                'slug' => 'multi-update-model-'.strtolower($letter),
+            ]);
+            $design = $model->designs()->create([
+                'product_id' => $product->id,
+                'name' => 'Design '.$letter,
+            ]);
+            $design->shades()->create(['name' => 'Shade '.$letter, 'color_hex' => '#112233']);
+            $models[] = [
+                'id' => $model->id,
+                'name' => $model->name,
+                'main_image' => UploadedFile::fake()->image('model-'.$letter.'.jpg'),
+                'designs' => [[
+                    'id' => $design->id,
+                    'name' => $design->name,
+                    'thumbnail' => UploadedFile::fake()->image('design-'.$letter.'.jpg'),
+                    'shades' => [[
+                        'id' => $design->shades()->first()->id,
+                        'name' => 'Shade '.$letter,
+                        'color_hex' => '#112233',
+                        'swatch' => UploadedFile::fake()->image('swatch-'.$letter.'.jpg'),
+                        'images' => [[
+                            'file' => [
+                                UploadedFile::fake()->image('gallery-'.$letter.'-1.jpg'),
+                                UploadedFile::fake()->image('gallery-'.$letter.'-2.jpg'),
+                            ],
+                        ]],
+                    ]],
+                ]],
+            ];
+        }
+
+        try {
+            $this->put(route('admin.products.update', $product), [
+                'name' => $product->name,
+                'main_image' => UploadedFile::fake()->image('product-updated.jpg'),
+                'models' => $models,
+            ])->assertRedirect(route('admin.products.index'));
+
+            $product->refresh()->load('models.designs');
+            $this->assertFileExists(public_path('uploads/'.$product->main_image));
+            $this->assertUploadedProductImagesExist($product, 2, 2, 2, 4);
+        } finally {
+            $this->deleteUploadedProductImages($product);
+        }
+    }
+
+    public function test_create_accepts_more_than_twenty_images_across_models_and_designs(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+        $models = [];
+
+        for ($modelIndex = 0; $modelIndex < 4; $modelIndex++) {
+            $designs = [];
+            for ($designIndex = 0; $designIndex < 2; $designIndex++) {
+                $designs[] = [
+                    'name' => "Design {$modelIndex}-{$designIndex}",
+                    'thumbnail' => UploadedFile::fake()->image("design-{$modelIndex}-{$designIndex}.jpg"),
+                    'shades' => [[
+                        'name' => "Shade {$modelIndex}-{$designIndex}",
+                        'color_hex' => '#112233',
+                        'swatch' => UploadedFile::fake()->image("swatch-{$modelIndex}-{$designIndex}.jpg"),
+                        'images' => [[
+                            'file' => [
+                                UploadedFile::fake()->image("gallery-{$modelIndex}-{$designIndex}-1.jpg"),
+                                UploadedFile::fake()->image("gallery-{$modelIndex}-{$designIndex}-2.jpg"),
+                            ],
+                        ]],
+                    ]],
+                ];
+            }
+
+            $models[] = [
+                'name' => "Model {$modelIndex}",
+                'main_image' => UploadedFile::fake()->image("model-{$modelIndex}.jpg"),
+                'designs' => $designs,
+            ];
+        }
+
+        $productName = 'More than twenty images';
+
+        $this->post(route('admin.products.store'), [
+            'name' => $productName,
+            'main_image' => UploadedFile::fake()->image('product-main.jpg'),
+            'models' => $models,
+        ])->assertRedirect(route('admin.products.index'));
+
+        $product = Product::query()->where('name', $productName)->firstOrFail();
+        try {
+            $this->assertUploadedProductImagesExist($product, 4, 8, 8, 16);
+            $this->assertFileExists(public_path('uploads/'.$product->main_image));
+        } finally {
+            $this->deleteUploadedProductImages($product);
+            File::delete(public_path('uploads/'.$product->main_image));
+        }
+    }
+
+    private function assertUploadedProductImagesExist(
+        Product $product,
+        int $expectedModelImages,
+        int $expectedDesignImages,
+        int $expectedSwatches,
+        int $expectedGalleryImages,
+    ): void {
+        $product->load('models.designs.shades.images');
+        $modelImageCount = 0;
+        $designImageCount = 0;
+        $swatchCount = 0;
+        $galleryImageCount = 0;
+
+        foreach ($product->models as $model) {
+            if ($model->main_image) {
+                $modelImageCount++;
+                $this->assertFileExists(public_path('uploads/'.$model->main_image));
+            }
+            foreach ($model->designs as $design) {
+                if ($design->thumbnail_image) {
+                    $designImageCount++;
+                    $this->assertFileExists(public_path('uploads/'.$design->thumbnail_image));
+                    $this->assertSame(asset('uploads/'.$design->thumbnail_image), $design->thumbnail_url);
+                }
+                foreach ($design->shades as $shade) {
+                    if ($shade->swatch_image) {
+                        $swatchCount++;
+                        $this->assertFileExists(public_path('uploads/'.$shade->swatch_image));
+                        $this->assertSame(asset('uploads/'.$shade->swatch_image), $shade->swatch_url);
+                    }
+                    foreach ($shade->images as $image) {
+                        $galleryImageCount++;
+                        $this->assertFileExists(public_path('uploads/'.$image->image_path));
+                        $this->assertSame(asset('uploads/'.$image->image_path), $image->url);
+                    }
+                }
+            }
+        }
+
+        $this->assertSame($expectedModelImages, $modelImageCount);
+        $this->assertSame($expectedDesignImages, $designImageCount);
+        $this->assertSame($expectedSwatches, $swatchCount);
+        $this->assertSame($expectedGalleryImages, $galleryImageCount);
+    }
+
+    private function deleteUploadedProductImages(Product $product): void
+    {
+        if ($product->main_image) {
+            File::delete(public_path('uploads/'.$product->main_image));
+        }
+
+        $product->load('models.designs.shades.images');
+        foreach ($product->models as $model) {
+            if ($model->main_image) {
+                File::delete(public_path('uploads/'.$model->main_image));
+            }
+            foreach ($model->designs as $design) {
+                if ($design->thumbnail_image) {
+                    File::delete(public_path('uploads/'.$design->thumbnail_image));
+                }
+                foreach ($design->shades as $shade) {
+                    if ($shade->swatch_image) {
+                        File::delete(public_path('uploads/'.$shade->swatch_image));
+                    }
+                    foreach ($shade->images as $image) {
+                        File::delete(public_path('uploads/'.$image->image_path));
+                    }
+                }
+            }
+        }
     }
 }

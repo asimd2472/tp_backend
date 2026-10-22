@@ -78,7 +78,7 @@
                         <div class="image-upload-field">
                             @if ($product->main_image)
                                 <div class="existing-image-previews mb-2">
-                                    <img src="{{ asset('storage/'.$product->main_image) }}" class="img-fluid rounded" style="max-height: 120px;" alt="{{ $product->name }}">
+                                    <img src="{{ $product->thumbnail_url }}" class="img-fluid rounded" style="max-height: 120px;" alt="{{ $product->name }}">
                                 </div>
                             @endif
                             <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
@@ -271,6 +271,17 @@
     <script>
         (function () {
             const modelList = document.getElementById('model-list');
+            const productForm = modelList.closest('form');
+
+            productForm?.addEventListener('submit', function (event) {
+                const selectedFiles = Array.from(productForm.querySelectorAll('input[type="file"]'))
+                    .reduce((total, input) => total + input.files.length, 0);
+
+                if (selectedFiles > 100) {
+                    event.preventDefault();
+                    window.alert('You can upload up to 100 images per product save.');
+                }
+            });
 
             function addShadeBlock(modelIndex, designIndex) {
                 const modelBlock = modelList.querySelectorAll('.model-block')[modelIndex];
