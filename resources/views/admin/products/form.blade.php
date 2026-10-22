@@ -12,6 +12,17 @@
     </section>
 
     <div class="panel-card p-4">
+        @if ($errors->any())
+            <div class="alert alert-danger" role="alert">
+                <strong>Product was not saved. Please correct these issues:</strong>
+                <ul class="mb-0 mt-2">
+                    @foreach ($errors->all() as $error)
+                        <li>{{ $error }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
+
         <form action="{{ $isEdit ? route('admin.products.update', $product) : route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             @if ($isEdit)

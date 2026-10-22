@@ -45,15 +45,15 @@ class ProductController extends Controller
             'starting_price' => ['nullable', 'numeric', 'min:0'],
             'is_premium' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
-            'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
             'models.*.is_default' => ['nullable', 'boolean'],
-            'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
-            'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
         ]);
 
         $product = DB::transaction(function () use ($request, $validated) {
@@ -109,15 +109,15 @@ class ProductController extends Controller
             'starting_price' => ['nullable', 'numeric', 'min:0'],
             'is_premium' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
-            'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
             'models.*.is_default' => ['nullable', 'boolean'],
-            'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
-            'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
-            'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
+            'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
         ]);
 
         DB::transaction(function () use ($request, $product, $validated) {
