@@ -46,6 +46,14 @@ class ProductController extends Controller
             'starting_price' => ['nullable', 'numeric', 'min:0'],
             'is_premium' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
+            'faqs' => ['nullable', 'array', 'max:100'],
+            'faqs.*.question' => ['required', 'string', 'max:1000'],
+            'faqs.*.answer' => ['required', 'string', 'max:10000'],
+            'specifications' => ['nullable', 'array', 'max:100'],
+            'specifications.*.question' => ['required', 'string', 'max:1000'],
+            'specifications.*.answer' => ['required', 'string', 'max:10000'],
+            'rating' => ['nullable', 'numeric', 'between:0,5'],
+            'review' => ['nullable', 'string', 'max:10000'],
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
@@ -68,6 +76,10 @@ class ProductController extends Controller
                 'starting_price' => (float) ($validated['starting_price'] ?? 0),
                 'is_premium' => (bool) ($validated['is_premium'] ?? false),
                 'is_active' => (bool) ($validated['is_active'] ?? true),
+                'faqs' => $this->normalizeQuestionAnswers($validated['faqs'] ?? []),
+                'specifications' => $this->normalizeQuestionAnswers($validated['specifications'] ?? []),
+                'rating' => $validated['rating'] ?? null,
+                'review' => $validated['review'] ?? null,
             ]);
 
             if ($request->hasFile('main_image')) {
@@ -110,6 +122,14 @@ class ProductController extends Controller
             'starting_price' => ['nullable', 'numeric', 'min:0'],
             'is_premium' => ['nullable', 'boolean'],
             'is_active' => ['nullable', 'boolean'],
+            'faqs' => ['nullable', 'array', 'max:100'],
+            'faqs.*.question' => ['required', 'string', 'max:1000'],
+            'faqs.*.answer' => ['required', 'string', 'max:10000'],
+            'specifications' => ['nullable', 'array', 'max:100'],
+            'specifications.*.question' => ['required', 'string', 'max:1000'],
+            'specifications.*.answer' => ['required', 'string', 'max:10000'],
+            'rating' => ['nullable', 'numeric', 'between:0,5'],
+            'review' => ['nullable', 'string', 'max:10000'],
             'main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
@@ -132,6 +152,10 @@ class ProductController extends Controller
                 'starting_price' => (float) ($validated['starting_price'] ?? 0),
                 'is_premium' => (bool) ($validated['is_premium'] ?? false),
                 'is_active' => (bool) ($validated['is_active'] ?? true),
+                'faqs' => $this->normalizeQuestionAnswers($validated['faqs'] ?? []),
+                'specifications' => $this->normalizeQuestionAnswers($validated['specifications'] ?? []),
+                'rating' => $validated['rating'] ?? null,
+                'review' => $validated['review'] ?? null,
             ];
 
             if ($request->hasFile('main_image')) {
@@ -148,6 +172,17 @@ class ProductController extends Controller
         });
 
         return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
+    }
+
+    private function normalizeQuestionAnswers(array $items): array
+    {
+        return collect($items)
+            ->map(fn (array $item) => [
+                'question' => trim($item['question']),
+                'answer' => trim($item['answer']),
+            ])
+            ->values()
+            ->all();
     }
 
     public function uploadModelImage(Request $request, Product $product, ProductModel $model): JsonResponse

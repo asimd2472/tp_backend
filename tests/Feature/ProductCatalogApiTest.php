@@ -83,6 +83,37 @@ class ProductCatalogApiTest extends TestCase
             ]);
     }
 
+    public function test_product_details_includes_faqs_specifications_rating_and_review(): void
+    {
+        $product = Product::create([
+            'name' => 'Oak Doors',
+            'slug' => 'oak-doors-content',
+            'category' => 'Doors',
+            'faqs' => [['question' => 'Question?', 'answer' => 'Answer.']],
+            'specifications' => [['question' => 'Thickness?', 'answer' => '35 mm']],
+            'rating' => 4.5,
+            'review' => 'Excellent finish.',
+        ]);
+
+        $model = ProductModel::create([
+            'product_id' => $product->id,
+            'name' => 'Default Model',
+            'slug' => 'oak-doors-content-default',
+            'is_active' => true,
+            'is_default' => true,
+        ]);
+
+        $this->getJson('/api/product-details?product_slug='.$product->slug)
+            ->assertOk()
+            ->assertJsonPath('product.faqs.0.question', 'Question?')
+            ->assertJsonPath('product.faqs.0.answer', 'Answer.')
+            ->assertJsonPath('product.specifications.0.question', 'Thickness?')
+            ->assertJsonPath('product.specifications.0.answer', '35 mm')
+            ->assertJsonPath('product.rating', 4.5)
+            ->assertJsonPath('product.review', 'Excellent finish.')
+            ->assertJsonPath('model.id', $model->id);
+    }
+
     public function test_it_uses_the_products_default_model_when_model_id_is_missing_or_blank(): void
     {
         $product = Product::create([

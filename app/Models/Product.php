@@ -22,6 +22,10 @@ class Product extends Model
         'is_premium',
         'is_active',
         'main_image',
+        'faqs',
+        'specifications',
+        'rating',
+        'review',
     ];
 
     protected function casts(): array
@@ -30,6 +34,9 @@ class Product extends Model
             'starting_price' => 'decimal:2',
             'is_premium' => 'boolean',
             'is_active' => 'boolean',
+            'faqs' => 'array',
+            'specifications' => 'array',
+            'rating' => 'decimal:1',
         ];
     }
 

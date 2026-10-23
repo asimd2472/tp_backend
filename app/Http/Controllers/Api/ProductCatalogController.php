@@ -309,6 +309,10 @@ class ProductCatalogController extends Controller
                 'short_description' => $product->short_description,
                 'description' => $product->description,
                 'main_image_url' => $this->resolveImageUrl($product->main_image, 'uploads/default/model.webp'),
+                'faqs' => $product->faqs ?? [],
+                'specifications' => $product->specifications ?? [],
+                'rating' => $product->rating === null ? null : (float) $product->rating,
+                'review' => $product->review,
             ],
             'model' => [
                 'id' => $model->id,

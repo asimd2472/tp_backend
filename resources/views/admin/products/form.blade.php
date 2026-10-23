@@ -22,6 +22,10 @@
                 </ul>
             </div>
         @endif
+        @php
+            $faqs = old('faqs', $product->faqs ?? []);
+            $specifications = old('specifications', $product->specifications ?? []);
+        @endphp
 
         <form action="{{ $isEdit ? route('admin.products.update', $product) : route('admin.products.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
@@ -96,6 +100,67 @@
                             <input type="file" name="main_image" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
+
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h3 class="h5 mb-1">Frequently asked questions</h3>
+                            <p class="small text-muted mb-0">Add product questions and answers.</p>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-qa-add="faqs">Add FAQ</button>
+                    </div>
+                    <div data-qa-list="faqs">
+                        @foreach ($faqs as $index => $faq)
+                            <div class="border rounded p-3 mb-3" data-qa-item>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>FAQ</strong>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" data-qa-remove>Remove</button>
+                                </div>
+                                <label class="form-label" for="faq-question-{{ $index }}">Question</label>
+                                <input id="faq-question-{{ $index }}" type="text" name="faqs[{{ $index }}][question]" class="form-control mb-2" value="{{ $faq['question'] ?? '' }}" required maxlength="1000">
+                                <label class="form-label" for="faq-answer-{{ $index }}">Answer</label>
+                                <textarea id="faq-answer-{{ $index }}" name="faqs[{{ $index }}][answer]" class="form-control" rows="3" required maxlength="10000">{{ $faq['answer'] ?? '' }}</textarea>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <div>
+                            <h3 class="h5 mb-1">Product specifications</h3>
+                            <p class="small text-muted mb-0">Enter each specification as a question and answer.</p>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-qa-add="specifications">Add specification</button>
+                    </div>
+                    <div data-qa-list="specifications">
+                        @foreach ($specifications as $index => $specification)
+                            <div class="border rounded p-3 mb-3" data-qa-item>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Specification</strong>
+                                    <button type="button" class="btn btn-outline-danger btn-sm" data-qa-remove>Remove</button>
+                                </div>
+                                <label class="form-label" for="specification-question-{{ $index }}">Question</label>
+                                <input id="specification-question-{{ $index }}" type="text" name="specifications[{{ $index }}][question]" class="form-control mb-2" value="{{ $specification['question'] ?? '' }}" required maxlength="1000">
+                                <label class="form-label" for="specification-answer-{{ $index }}">Answer</label>
+                                <textarea id="specification-answer-{{ $index }}" name="specifications[{{ $index }}][answer]" class="form-control" rows="3" required maxlength="10000">{{ $specification['answer'] ?? '' }}</textarea>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
+
+                <div class="col-lg-4">
+                    <label class="form-label" for="rating">Rating (0–5)</label>
+                    <input id="rating" name="rating" type="number" min="0" max="5" step="0.1" class="form-control" value="{{ old('rating', $product->rating) }}">
+                </div>
+                <div class="col-lg-8">
+                    <label class="form-label" for="review">Review</label>
+                    <textarea id="review" name="review" class="form-control" rows="3" maxlength="10000">{{ old('review', $product->review) }}</textarea>
                 </div>
             </div>
 
@@ -287,6 +352,45 @@
             </div>
         </form>
     </div>
+
+    <script>
+        (function () {
+            document.querySelectorAll('[data-qa-list]').forEach(function (list) {
+                const indexes = Array.from(list.querySelectorAll('[name]'))
+                    .map(input => Number(input.name.match(/\[(\d+)\]/)?.[1] ?? -1));
+                list.dataset.nextIndex = String(Math.max(-1, ...indexes) + 1);
+            });
+
+            document.addEventListener('click', function (event) {
+                const addButton = event.target.closest('[data-qa-add]');
+                if (addButton) {
+                    const type = addButton.dataset.qaAdd;
+                    const list = document.querySelector(`[data-qa-list="${type}"]`);
+                    const index = Number(list.dataset.nextIndex);
+                    list.dataset.nextIndex = String(index + 1);
+                    const label = type === 'faqs' ? 'FAQ' : 'Specification';
+                    list.insertAdjacentHTML('beforeend', `
+                        <div class="border rounded p-3 mb-3" data-qa-item>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong>${label}</strong>
+                                <button type="button" class="btn btn-outline-danger btn-sm" data-qa-remove>Remove</button>
+                            </div>
+                            <label class="form-label" for="${type}-question-${index}">Question</label>
+                            <input id="${type}-question-${index}" type="text" name="${type}[${index}][question]" class="form-control mb-2" required maxlength="1000">
+                            <label class="form-label" for="${type}-answer-${index}">Answer</label>
+                            <textarea id="${type}-answer-${index}" name="${type}[${index}][answer]" class="form-control" rows="3" required maxlength="10000"></textarea>
+                        </div>
+                    `);
+                    return;
+                }
+
+                const removeButton = event.target.closest('[data-qa-remove]');
+                if (removeButton) {
+                    removeButton.closest('[data-qa-item]').remove();
+                }
+            });
+        })();
+    </script>
 
     <script>
         (function () {

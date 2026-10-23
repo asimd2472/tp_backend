@@ -58,6 +58,77 @@ class ProductFormTest extends TestCase
             ->assertSee('Existing models are preserved on update', false);
     }
 
+    public function test_admin_can_create_and_update_product_faqs_specifications_rating_and_review(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $payload = [
+            'name' => 'Product content test',
+            'faqs' => [[
+                'question' => 'Is this door waterproof?',
+                'answer' => 'It is suitable for indoor use.',
+            ]],
+            'specifications' => [[
+                'question' => 'What is the thickness?',
+                'answer' => '35 mm',
+            ]],
+            'rating' => '4.5',
+            'review' => 'Strong quality and finish.',
+        ];
+
+        $this->post(route('admin.products.store'), $payload)
+            ->assertRedirect(route('admin.products.index'));
+
+        $product = Product::query()->where('name', $payload['name'])->firstOrFail();
+        $this->assertSame($payload['faqs'], $product->faqs);
+        $this->assertSame($payload['specifications'], $product->specifications);
+        $this->assertSame('4.5', $product->rating);
+        $this->assertSame($payload['review'], $product->review);
+
+        $this->put(route('admin.products.update', $product), [
+            'name' => $payload['name'],
+            'faqs' => [[
+                'question' => 'Can it be customized?',
+                'answer' => 'Yes, customization is available.',
+            ]],
+            'specifications' => [],
+            'rating' => '4.8',
+            'review' => 'Updated customer feedback.',
+        ])->assertRedirect(route('admin.products.index'));
+
+        $product->refresh();
+        $this->assertSame([[
+            'question' => 'Can it be customized?',
+            'answer' => 'Yes, customization is available.',
+        ]], $product->faqs);
+        $this->assertSame([], $product->specifications);
+        $this->assertSame('4.8', $product->rating);
+        $this->assertSame('Updated customer feedback.', $product->review);
+    }
+
+    public function test_product_form_displays_existing_faqs_specifications_rating_and_review(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $product = Product::create([
+            'name' => 'Product content edit',
+            'slug' => 'product-content-edit',
+            'faqs' => [['question' => 'FAQ question', 'answer' => 'FAQ answer']],
+            'specifications' => [['question' => 'Specification question', 'answer' => 'Specification answer']],
+            'rating' => 4.5,
+            'review' => 'Product review text',
+        ]);
+
+        $this->get(route('admin.products.edit', $product))
+            ->assertOk()
+            ->assertSee('FAQ question')
+            ->assertSee('FAQ answer')
+            ->assertSee('Specification question')
+            ->assertSee('Specification answer')
+            ->assertSee('value="4.5"', false)
+            ->assertSee('Product review text');
+    }
+
     public function test_edit_form_uses_correct_upload_names_for_each_model_design_and_shade(): void
     {
         $this->actingAs(User::factory()->admin()->create());
