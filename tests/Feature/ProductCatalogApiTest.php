@@ -68,11 +68,88 @@ class ProductCatalogApiTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->getJson('/api/product-details?model_id='.$model->id)
+        $this->getJson('/api/product-details?product_slug='.$product->slug.'&model_id='.$model->id)
             ->assertOk()
             ->assertJsonPath('success', true)
             ->assertJsonPath('product.name', 'Oak Doors')
             ->assertJsonPath('model.id', $model->id)
-            ->assertJsonPath('model.main_image_url', asset('uploads/default/model.webp'));
+            ->assertJsonPath('model.main_image_url', asset('uploads/default/model.webp'))
+            ->assertJsonStructure([
+                'success',
+                'product' => ['id', 'name', 'category', 'slug', 'short_description', 'description', 'main_image_url'],
+                'model' => ['id', 'name', 'slug', 'short_description', 'description', 'starting_price', 'is_premium', 'is_active', 'is_default', 'main_image_url'],
+                'designs',
+                'defaults' => ['design_id', 'shade_id', 'size_id'],
+            ]);
+    }
+
+    public function test_it_uses_the_products_default_model_when_model_id_is_missing_or_blank(): void
+    {
+        $product = Product::create([
+            'name' => 'Oak Doors',
+            'slug' => 'oak-doors',
+            'category' => 'Doors',
+            'starting_price' => 1200,
+            'is_active' => true,
+        ]);
+
+        $defaultModel = ProductModel::create([
+            'product_id' => $product->id,
+            'name' => 'Default Model',
+            'slug' => 'default-model',
+            'is_active' => true,
+            'is_default' => true,
+        ]);
+
+        ProductModel::create([
+            'product_id' => $product->id,
+            'name' => 'Other Model',
+            'slug' => 'other-model',
+            'is_active' => true,
+        ]);
+
+        $withoutModelId = $this->getJson('/api/product-details?product_slug='.$product->slug)
+            ->assertOk()
+            ->assertJsonPath('model.id', $defaultModel->id);
+
+        $withBlankModelId = $this->getJson('/api/product-details?product_slug='.$product->slug.'&model_id=')
+            ->assertOk()
+            ->assertJsonPath('model.id', $defaultModel->id);
+
+        $this->assertSame($withoutModelId->json(), $withBlankModelId->json());
+    }
+
+    public function test_it_requires_a_product_slug_for_product_details(): void
+    {
+        $this->getJson('/api/product-details?model_id=25')
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'The provided data is invalid.')
+            ->assertJsonValidationErrors('product_slug');
+    }
+
+    public function test_it_returns_a_json_not_found_error_when_the_product_or_model_does_not_exist(): void
+    {
+        $product = Product::create([
+            'name' => 'Oak Doors',
+            'slug' => 'oak-doors',
+            'category' => 'Doors',
+            'starting_price' => 1200,
+            'is_active' => true,
+        ]);
+
+        $this->getJson('/api/product-details?product_slug=missing-product')
+            ->assertNotFound()
+            ->assertExactJson([
+                'success' => false,
+                'message' => 'Product or model not found.',
+            ]);
+
+        $this->getJson('/api/product-details?product_slug='.$product->slug.'&model_id=25')
+            ->assertNotFound()
+            ->assertExactJson([
+                'success' => false,
+                'message' => 'Product or model not found.',
+            ]);
     }
 }

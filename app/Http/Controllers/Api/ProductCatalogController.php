@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductModel;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ProductCatalogController extends Controller
 {
@@ -188,19 +192,64 @@ class ProductCatalogController extends Controller
 
     public function productDetails(Request $request, ?int $modelId = null): JsonResponse
     {
-        $modelId = $modelId ?? $request->integer('model_id');
+        try {
+            return $this->buildProductDetailsResponse($request, $modelId);
+        } catch (ValidationException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => 'The provided data is invalid.',
+                'errors' => $exception->errors(),
+            ], 422);
+        } catch (ModelNotFoundException) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Product or model not found.',
+            ], 404);
+        } catch (Throwable $exception) {
+            Log::error('Failed to retrieve product details.', [
+                'product_slug' => $request->query('product_slug'),
+                'model_id' => $modelId ?? $request->query('model_id'),
+                'exception' => $exception,
+            ]);
 
-        abort_unless($modelId, 404, 'Model ID is required.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Unable to retrieve product details.',
+            ], 500);
+        }
+    }
 
-        $model = ProductModel::query()
+    private function buildProductDetailsResponse(Request $request, ?int $modelId = null): JsonResponse
+    {
+        $modelIdInput = $modelId ?? $request->query('model_id');
+        $validated = validator([
+            'product_slug' => $request->query('product_slug'),
+            'model_id' => blank($modelIdInput) ? null : $modelIdInput,
+        ], [
+            'product_slug' => ['required', 'string'],
+            'model_id' => ['nullable', 'integer', 'min:1'],
+        ])->validate();
+
+        // dd($validated['product_slug'] . ' - ' . $validated['model_id']);
+
+        $product = Product::query()
+            ->where('slug', $validated['product_slug'])
+            ->firstOrFail();
+
+        $modelQuery = ProductModel::query()
+            ->where('product_id', $product->id)
             ->with([
-                'product',
                 'designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
                 'designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
-            ])
-            ->findOrFail($modelId);
+            ]);
 
-        $product = $model->product;
+        if ($validated['model_id'] !== null) {
+            $modelQuery->whereKey($validated['model_id']);
+        } else {
+            $modelQuery->where('is_default', true);
+        }
+
+        $model = $modelQuery->firstOrFail();
 
         $designs = $model->designs->map(function ($design) {
             $shades = $design->shades->map(function ($shade) {
