@@ -33,14 +33,35 @@
                     <span>Role management</span>
                 </a>
                 <div class="sidebar-product-group">
-                    <a class="sidebar-link is-active" href="{{ route('admin.products.french-door.index') }}">
+                    <a class="sidebar-link sidebar-product-toggle is-active" href="#" aria-expanded="false">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Zm0 0v10l9 4 9-4V7M12 11v10"></path></svg>
                         <span>Products</span>
+                        <span class="sidebar-nav-caret" aria-hidden="true">▾</span>
                     </a>
-                    <a class="sidebar-sublink is-active" href="{{ route('admin.products.french-door.index') }}" aria-current="page">
-                        <span class="sidebar-subnav-dot"></span>
-                        <span>French-door</span>
-                    </a>
+                    <div class="sidebar-product-menu">
+                        <div class="sidebar-product-menu-inner">
+                            <div class="sidebar-product-category">
+                                <a class="sidebar-sublink {{ request()->routeIs('admin.products.index') || request()->routeIs('admin.products.french-door.*') ? 'is-active' : '' }}" href="{{ route('admin.products.index') }}">
+                                    <span class="sidebar-subnav-dot"></span>
+                                    <span>Door</span>
+                                </a>
+                                <div class="sidebar-subgroup">
+                                    <a class="sidebar-sublink {{ request()->routeIs('admin.products.index') ? 'is-active' : '' }}" href="{{ route('admin.products.index') }}">
+                                        <span class="sidebar-subnav-dot"></span>
+                                        <span>Catalog</span>
+                                    </a>
+                                    <a class="sidebar-sublink {{ request()->routeIs('admin.products.french-door.*') ? 'is-active' : '' }}" href="{{ route('admin.products.french-door.index') }}">
+                                        <span class="sidebar-subnav-dot"></span>
+                                        <span>French-door</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <a class="sidebar-sublink" href="{{ route('admin.products.index') }}">
+                                <span class="sidebar-subnav-dot"></span>
+                                <span>Window</span>
+                            </a>
+                        </div>
+                    </div>
                 </div>
                 <a class="sidebar-link" href="{{ route('admin.dashboard') }}#security">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v5.6c0 4.2-2.9 7.5-7 9.4-4.1-1.9-7-5.2-7-9.4V6l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>

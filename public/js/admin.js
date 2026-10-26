@@ -19,6 +19,29 @@ $(function () {
 
         $sidebarClose.on('click', closeSidebar);
 
+        $('.sidebar-product-group').each(function () {
+            const $group = $(this);
+            const $toggle = $group.find('.sidebar-product-toggle');
+            const $menu = $group.find('.sidebar-product-menu');
+
+            if (!$toggle.length || !$menu.length) {
+                return;
+            }
+
+            const syncProductState = function (isOpen) {
+                $group.toggleClass('is-open', isOpen);
+                $toggle.attr('aria-expanded', isOpen ? 'true' : 'false');
+            };
+
+            syncProductState(false);
+
+            $toggle.on('click', function (event) {
+                event.preventDefault();
+                const nextState = !$group.hasClass('is-open');
+                syncProductState(nextState);
+            });
+        });
+
         $('.sidebar-link').on('click', function (event) {
             const href = $(this).attr('href') || '';
 
