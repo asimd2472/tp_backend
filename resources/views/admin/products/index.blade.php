@@ -11,7 +11,7 @@
         </div>
         <div class="page-actions">
             <a href="{{ route('admin.products.import.index') }}" class="btn btn-outline-primary">Import Spreadsheet</a>
-            <a href="{{ route('admin.products.create') }}" class="btn btn-primary btn-cta">Add Product</a>
+            <a href="{{ route('admin.products.create') }}" class="btn btn-primary">Add Product</a>
         </div>
     </section>
 
