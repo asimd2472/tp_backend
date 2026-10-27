@@ -69,7 +69,7 @@ During product and window spreadsheet imports, shade names are matched case-inse
 
 The admin sidebar's **Products → Window** section manages window products independently from the door catalog. Window spreadsheet imports accept the `Product Name`, `Models`, `Shades`, and `Sizes` columns in `public/excel/window.xlsx`. Window models own shades directly; there is no design level. Window records use the separate `window_*` tables.
 
-The window catalog API is available at `GET /api/windows`, `GET /api/windows/{slug}/models`, and `GET /api/windows/{slug}`. Detailed model data is available at `GET /api/window-details?window_slug={slug}` with an optional `model_id` query parameter (or `GET /api/window-details/{model_id}?window_slug={slug}`).
+The window catalog API is available at `GET /api/windows`, `GET /api/windows/{slug}/models`, and `GET /api/windows/{slug}`. The shared `GET /api/product-details?product_slug={slug}&model_id={id}` endpoint serves both catalogs with the same `success`, `product`, `model`, `designs`, and `defaults` response structure. For windows, `designs` is an empty array, `defaults.design_id` is `null`, and window `shades` are returned directly in a `shades` array. `model_id` is optional and selects the default model when omitted. If a slug exists in both catalogs, the door product takes precedence. The earlier `/api/window-details?window_slug={slug}` endpoint remains available with its legacy response shape.
 
 ## License
 

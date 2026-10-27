@@ -196,18 +196,44 @@ class WindowCatalogTest extends TestCase
         $this->getJson(route('api.windows.models', $window->slug))
             ->assertOk()
             ->assertJsonPath('models.0.name', 'Vista');
+        $this->getJson(route('api.product-details', ['product_slug' => $window->slug]))
+            ->assertOk()
+            ->assertJsonPath('product.slug', $window->slug)
+            ->assertJsonPath('model.id', $model->id)
+            ->assertJsonPath('designs', [])
+            ->assertJsonPath('shades.0.id', $shade->id)
+            ->assertJsonPath('shades.0.sizes.0.width_mm', 914)
+            ->assertJsonPath('defaults.design_id', null)
+            ->assertJsonPath('defaults.shade_id', $shade->id)
+            ->assertJsonStructure([
+                'success',
+                'product' => ['id', 'name', 'category', 'slug', 'short_description', 'description', 'main_image_url', 'faqs', 'specifications', 'rating', 'review'],
+                'model' => ['id', 'name', 'slug', 'short_description', 'description', 'starting_price', 'is_premium', 'is_active', 'is_default', 'main_image_url'],
+                'designs',
+                'defaults' => ['design_id', 'shade_id', 'size_id'],
+            ]);
+        $this->getJson(route('api.product-details-by-id', [
+            'model_id' => $model->id,
+            'product_slug' => $window->slug,
+        ]))->assertOk()->assertJsonPath('model.id', $model->id);
+        $this->getJson(route('api.product-details', [
+            'product_slug' => $window->slug,
+            'model_id' => $model->id,
+        ]))->assertOk()->assertJsonPath('model.id', $model->id);
         $this->getJson(route('api.window-details', ['window_slug' => $window->slug]))
             ->assertOk()
             ->assertJsonPath('window.slug', $window->slug)
-            ->assertJsonPath('model.id', $model->id)
-            ->assertJsonPath('shades.0.id', $shade->id)
-            ->assertJsonPath('shades.0.sizes.0.width_mm', 914)
-            ->assertJsonPath('defaults.shade_id', $shade->id)
             ->assertJsonMissingPath('designs');
-        $this->getJson(route('api.window-details-by-id', [
-            'model_id' => $model->id,
-            'window_slug' => $window->slug,
-        ]))->assertOk()->assertJsonPath('model.id', $model->id);
+    }
+
+    public function test_product_details_rejects_requests_that_select_both_catalogs(): void
+    {
+        $this->getJson(route('api.product-details', [
+            'product_slug' => 'a-door',
+            'window_slug' => 'a-window',
+        ]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['product_slug', 'window_slug']);
     }
 
     public function test_invalid_window_size_does_not_partially_import_the_spreadsheet(): void

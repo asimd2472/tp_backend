@@ -301,6 +301,7 @@ class ProductCatalogController extends Controller
 
         return response()->json([
             'success' => true,
+            'type' => 'door',
             'product' => [
                 'id' => $product->id,
                 'name' => $product->name,

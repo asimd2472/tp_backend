@@ -102,12 +102,12 @@ class WindowCatalogController extends Controller
         ]);
     }
 
-    public function windowDetails(Request $request, ?int $modelId = null): JsonResponse
+    public function windowDetails(Request $request, ?int $modelId = null, bool $sharedProductDetails = false): JsonResponse
     {
         try {
             $inputModelId = $modelId ?? $request->query('model_id');
             $validated = validator([
-                'window_slug' => $request->query('window_slug'),
+                'window_slug' => $request->query('window_slug', $request->query('product_slug')),
                 'model_id' => blank($inputModelId) ? null : $inputModelId,
             ], [
                 'window_slug' => ['required', 'string'],
@@ -122,7 +122,7 @@ class WindowCatalogController extends Controller
                 $query->where('is_default', true);
             }
 
-            return $this->detailsResponse($window, $query->firstOrFail());
+            return $this->detailsResponse($window, $query->firstOrFail(), $sharedProductDetails);
         } catch (ValidationException $exception) {
             return response()->json([
                 'success' => false,
@@ -133,7 +133,7 @@ class WindowCatalogController extends Controller
             return response()->json(['success' => false, 'message' => 'Window or model not found.'], 404);
         } catch (Throwable $exception) {
             Log::error('Failed to retrieve window details.', [
-                'window_slug' => $request->query('window_slug'),
+                'window_slug' => $request->query('window_slug', $request->query('product_slug')),
                 'model_id' => $modelId ?? $request->query('model_id'),
                 'exception' => $exception,
             ]);
@@ -147,15 +147,18 @@ class WindowCatalogController extends Controller
         return $this->detailsResponse($model->product, $model);
     }
 
-    private function detailsResponse(WindowProduct $window, WindowModel $model): JsonResponse
+    private function detailsResponse(WindowProduct $window, WindowModel $model, bool $sharedProductDetails = false): JsonResponse
     {
         $shades = $model->shades->map(fn (WindowShade $shade) => $this->shadePayload($shade))->values();
         $defaultShade = $shades->first();
         $defaultSize = $defaultShade['sizes']->first() ?? null;
 
-        return response()->json([
+        $response = [
             'success' => true,
-            'window' => $this->windowPayload($window),
+            'type' => 'window',
+            $sharedProductDetails
+                ? 'product'
+                : 'window' => $this->windowPayload($window),
             'model' => [
                 'id' => $model->id,
                 'name' => $model->name,
@@ -168,12 +171,21 @@ class WindowCatalogController extends Controller
                 'is_default' => (bool) $model->is_default,
                 'main_image_url' => $model->main_image_url,
             ],
-            'shades' => $shades,
             'defaults' => [
                 'shade_id' => $defaultShade['id'] ?? null,
                 'size_id' => $defaultSize['id'] ?? null,
             ],
-        ]);
+        ];
+
+        if ($sharedProductDetails) {
+            $response['designs'] = [];
+            $response['shades'] = $shades;
+            $response['defaults'] = ['design_id' => null, ...$response['defaults']];
+        } else {
+            $response['shades'] = $shades;
+        }
+
+        return response()->json($response);
     }
 
     private function shadePayload(WindowShade $shade): array

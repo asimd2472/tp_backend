@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\ProductDetailsController;
 use App\Http\Controllers\Api\WindowCatalogController;
 use App\Http\Controllers\FrenchDoorOptionsController;
 use Illuminate\Support\Facades\Route;
@@ -14,14 +15,13 @@ Route::get('/products/french-door/options', FrenchDoorOptionsController::class)
     ->name('api.products.french-door.options');
 Route::get('/products/{slug}', [ProductCatalogController::class, 'show'])
     ->name('api.products.show');
-Route::get('/product-details', [ProductCatalogController::class, 'productDetails'])
+Route::get('/product-details', ProductDetailsController::class)
     ->name('api.product-details');
-Route::get('/product-details/{model_id}', [ProductCatalogController::class, 'productDetails'])
+Route::get('/product-details/{model_id}', ProductDetailsController::class)
     ->name('api.product-details-by-id');
 Route::get('/product/french-door', [ProductController::class, 'french_door'])
     ->name('api.product.french-door');
 
-    
 Route::get('/windows', [WindowCatalogController::class, 'index'])
     ->name('api.windows.index');
 Route::get('/windows/{slug}/models', [WindowCatalogController::class, 'modelsByWindow'])
