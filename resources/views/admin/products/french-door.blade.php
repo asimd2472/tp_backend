@@ -63,6 +63,10 @@
                         </div>
                     </div>
                 </div>
+                <a class="sidebar-link {{ request()->routeIs('admin.blog.*') ? 'is-active' : '' }}" href="{{ route('admin.blog.index') }}">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v14H5A1.5 1.5 0 0 1 3.5 18.5V6A1.5 1.5 0 0 1 5 4.5Z"></path><path d="M7.5 8h9M7.5 11.5h9M7.5 15h5"></path></svg>
+                    <span>Blog</span>
+                </a>
                 <a class="sidebar-link" href="{{ route('admin.dashboard') }}#security">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v5.6c0 4.2-2.9 7.5-7 9.4-4.1-1.9-7-5.2-7-9.4V6l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>
                     <span>Security</span>

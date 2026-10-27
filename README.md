@@ -71,6 +71,10 @@ The admin sidebar's **Products → Window** section manages window products inde
 
 The window catalog API is available at `GET /api/windows`, `GET /api/windows/{slug}/models`, and `GET /api/windows/{slug}`. The shared `GET /api/product-details?product_slug={slug}&model_id={id}` endpoint serves both catalogs with the same `success`, `product`, `model`, `designs`, and `defaults` response structure. For windows, `designs` is an empty array, `defaults.design_id` is `null`, and window `shades` are returned directly in a `shades` array. `model_id` is optional and selects the default model when omitted. If a slug exists in both catalogs, the door product takes precedence. The earlier `/api/window-details?window_slug={slug}` endpoint remains available with its legacy response shape.
 
+## Blog Management
+
+Administrators can manage posts from **Blog** in the admin sidebar. Posts can be saved as drafts or published, and include a title, slug, category, tags, excerpt, featured image, and search-engine metadata. The rich text editor supports formatted text, headings, lists, links, tables, media, fullscreen editing, and HTML source editing. Images inserted into the article are uploaded to `public/uploads/blogs/content`; featured images are stored separately under `public/uploads/blogs/featured`.
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

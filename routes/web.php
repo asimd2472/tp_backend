@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminAuthController;
+use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\FrenchDoorController;
 use App\Http\Controllers\Admin\ProductController;
@@ -37,6 +38,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->whereIn('kind', ['swatch', 'gallery'])
         ->name('windows.shades.image');
     Route::resource('windows', WindowController::class)->except(['show']);
+    Route::post('/blog/media', [BlogController::class, 'uploadMedia'])->name('blog.media.store');
+    Route::resource('blog', BlogController::class)->except(['show']);
     Route::get('/products/french-door', [FrenchDoorController::class, 'index'])->name('products.french-door.index');
     Route::post('/products/french-door/options', [FrenchDoorController::class, 'store'])->name('products.french-door.options.store');
     Route::put('/products/french-door/options/{option}', [FrenchDoorController::class, 'update'])->name('products.french-door.options.update');
