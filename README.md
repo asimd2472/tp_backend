@@ -63,7 +63,13 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 
 ## Product Excel Shade Colors
 
-During product spreadsheet imports, shade names are matched case-insensitively against `public/excel/tata_pravesh_colors.json`. The matching `hex_code` is saved as the shade's color. If the shade is missing from the map or has no hex code, the importer uses `DEFAULT_COLOR_CODE` from `.env` (for example, `DEFAULT_COLOR_CODE=#1d82f5`).
+During product and window spreadsheet imports, shade names are matched case-insensitively against `public/excel/tata_pravesh_colors.json`. The matching `hex_code` is saved as the shade's color. If the shade is missing from the map or has no hex code, the importer uses `DEFAULT_COLOR_CODE` from `.env` (for example, `DEFAULT_COLOR_CODE=#1d82f5`).
+
+## Window Catalog
+
+The admin sidebar's **Products → Window** section manages window products independently from the door catalog. Window spreadsheet imports accept the `Product Name`, `Models`, `Shades`, and `Sizes` columns in `public/excel/window.xlsx`. Window models own shades directly; there is no design level. Window records use the separate `window_*` tables.
+
+The window catalog API is available at `GET /api/windows`, `GET /api/windows/{slug}/models`, and `GET /api/windows/{slug}`. Detailed model data is available at `GET /api/window-details?window_slug={slug}` with an optional `model_id` query parameter (or `GET /api/window-details/{model_id}?window_slug={slug}`).
 
 ## License
 

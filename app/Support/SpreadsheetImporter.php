@@ -12,6 +12,11 @@ use Illuminate\Support\Str;
 
 class SpreadsheetImporter
 {
+    public function rowsFromFile(string $path): array
+    {
+        return $this->readRows($path);
+    }
+
     public function importFromFile(string $path): array
     {
         $rows = $this->readRows($path);

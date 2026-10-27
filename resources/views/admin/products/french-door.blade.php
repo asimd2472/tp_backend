@@ -56,7 +56,7 @@
                                     </a>
                                 </div>
                             </div>
-                            <a class="sidebar-sublink" href="{{ route('admin.products.index') }}">
+                            <a class="sidebar-sublink" href="{{ route('admin.windows.index') }}">
                                 <span class="sidebar-subnav-dot"></span>
                                 <span>Window</span>
                             </a>

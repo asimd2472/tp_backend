@@ -7,6 +7,8 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductImportController;
 use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\UserRoleController;
+use App\Http\Controllers\Admin\WindowController;
+use App\Http\Controllers\Admin\WindowImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/admin/login');
@@ -27,6 +29,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
         ->name('products.shades.image');
     Route::get('/products/import', [ProductImportController::class, 'index'])->name('products.import.index');
     Route::post('/products/import', [ProductImportController::class, 'store'])->name('products.import.store');
+    Route::get('/windows/import', [WindowImportController::class, 'index'])->name('windows.import.index');
+    Route::post('/windows/import', [WindowImportController::class, 'store'])->name('windows.import.store');
+    Route::resource('windows', WindowController::class)->except(['show']);
     Route::get('/products/french-door', [FrenchDoorController::class, 'index'])->name('products.french-door.index');
     Route::post('/products/french-door/options', [FrenchDoorController::class, 'store'])->name('products.french-door.options.store');
     Route::put('/products/french-door/options/{option}', [FrenchDoorController::class, 'update'])->name('products.french-door.options.update');

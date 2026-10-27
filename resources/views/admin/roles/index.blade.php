@@ -33,7 +33,7 @@
                     <span>Role management</span>
                 </a>
                 <div class="sidebar-product-group">
-                    <a class="sidebar-link sidebar-product-toggle {{ request()->routeIs('admin.products.*') ? 'is-active' : '' }}" href="#" aria-expanded="false">
+                    <a class="sidebar-link sidebar-product-toggle {{ request()->routeIs('admin.products.*', 'admin.windows.*') ? 'is-active' : '' }}" href="#" aria-expanded="false">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Zm0 0v10l9 4 9-4V7M12 11v10"></path></svg>
                         <span>Products</span>
                         <span class="sidebar-nav-caret" aria-hidden="true">▾</span>
@@ -56,7 +56,7 @@
                                     </a>
                                 </div>
                             </div>
-                            <a class="sidebar-sublink" href="{{ route('admin.products.index') }}">
+                            <a class="sidebar-sublink {{ request()->routeIs('admin.windows.*') ? 'is-active' : '' }}" href="{{ route('admin.windows.index') }}">
                                 <span class="sidebar-subnav-dot"></span>
                                 <span>Window</span>
                             </a>
