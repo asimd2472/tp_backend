@@ -9,6 +9,7 @@ use App\Models\WindowSize;
 use App\Support\WindowSpreadsheetImporter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\File;
 use Tests\TestCase;
 
 class WindowCatalogTest extends TestCase
@@ -168,6 +169,61 @@ class WindowCatalogTest extends TestCase
             'width_mm' => 1219,
             'height_mm' => 1830,
         ]);
+    }
+
+    public function test_admin_can_upload_window_model_swatch_and_gallery_images_immediately(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $window = WindowProduct::create([
+            'name' => 'Awning Window',
+            'slug' => 'awning-window-images',
+        ]);
+        $model = $window->models()->create([
+            'name' => 'Vista',
+            'slug' => 'awning-window-vista-images',
+        ]);
+        $shade = $model->shades()->create([
+            'name' => 'Sun Teak',
+            'color_hex' => '#C58A45',
+        ]);
+
+        $uploadedPaths = [];
+        try {
+            $modelResponse = $this->postJson(route('admin.windows.models.image', [$window, $model]), [
+                'image' => UploadedFile::fake()->image('model.jpg'),
+            ])->assertOk()->assertJsonPath('message', 'Model image uploaded successfully.');
+            $uploadedPaths[] = $modelResponse->json('image_url');
+            $this->assertNotNull($model->fresh()->main_image);
+
+            $swatchResponse = $this->postJson(route('admin.windows.shades.image', [$window, $model, $shade, 'swatch']), [
+                'image' => UploadedFile::fake()->image('swatch.jpg'),
+            ])->assertOk()->assertJsonPath('message', 'Swatch image uploaded successfully.');
+            $uploadedPaths[] = $swatchResponse->json('image_url');
+            $this->assertNotNull($shade->fresh()->swatch_image);
+
+            $galleryResponse = $this->postJson(route('admin.windows.shades.image', [$window, $model, $shade, 'gallery']), [
+                'image' => UploadedFile::fake()->image('gallery.jpg'),
+            ])->assertOk()->assertJsonPath('message', 'Gallery image uploaded successfully.');
+            $uploadedPaths[] = $galleryResponse->json('image_url');
+            $this->assertDatabaseHas('window_images', [
+                'window_shade_id' => $shade->id,
+                'is_primary' => true,
+            ]);
+
+            $this->get(route('admin.windows.edit', $window))
+                ->assertOk()
+                ->assertSee('image-preview-input')
+                ->assertSee(route('admin.windows.models.image', [$window, $model]))
+                ->assertSee(route('admin.windows.shades.image', [$window, $model, $shade, 'swatch']))
+                ->assertSee(route('admin.windows.shades.image', [$window, $model, $shade, 'gallery']));
+        } finally {
+            foreach ($uploadedPaths as $url) {
+                if ($url) {
+                    File::delete(public_path(ltrim((string) parse_url($url, PHP_URL_PATH), '/')));
+                }
+            }
+        }
     }
 
     public function test_window_api_returns_shades_without_designs_and_uses_window_records_only(): void

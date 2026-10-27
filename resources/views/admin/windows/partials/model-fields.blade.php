@@ -10,10 +10,18 @@
         </div>
         <div class="col-md-5">
             <label class="form-label">Model image</label>
-            @if ($model?->main_image)
-                <img src="{{ $model->main_image_url }}" alt="{{ $model->name }}" class="d-block rounded mb-2" style="max-height:70px;">
-            @endif
-            <input type="file" name="models[{{ $modelIndex }}][main_image]" class="form-control" accept="image/jpeg,image/png,image/webp">
+            <div class="image-upload-field">
+                @if ($model?->main_image)
+                    <div class="existing-image-previews mb-2">
+                        <img src="{{ $model->main_image_url }}" alt="{{ $model->name }}" class="img-fluid rounded" style="max-height:70px;">
+                    </div>
+                @endif
+                <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                <input type="file" name="models[{{ $modelIndex }}][main_image]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" @if ($isEdit && $model?->exists) data-upload-url="{{ route('admin.windows.models.image', [$window, $model]) }}" data-upload-mode="replace" @endif>
+                @if ($isEdit && $model?->exists)
+                    <div class="small text-muted image-upload-status" aria-live="polite"></div>
+                @endif
+            </div>
         </div>
         <div class="col-md-6">
             <label class="form-label">Short description</label>

@@ -13,21 +13,35 @@
         </div>
         <div class="col-md-3">
             <label class="form-label">Swatch image</label>
-            @if ($shade?->swatch_image)
-                <img src="{{ $shade->swatch_url }}" alt="{{ $shade->name }}" class="d-block rounded mb-2" style="max-height:54px;">
-            @endif
-            <input type="file" name="models[{{ $modelIndex }}][shades][{{ $shadeIndex }}][swatch]" class="form-control" accept="image/jpeg,image/png,image/webp">
+            <div class="image-upload-field">
+                @if ($shade?->swatch_image)
+                    <div class="existing-image-previews mb-2">
+                        <img src="{{ $shade->swatch_url }}" alt="{{ $shade->name }}" class="img-fluid rounded" style="max-height:54px;">
+                    </div>
+                @endif
+                <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                <input type="file" name="models[{{ $modelIndex }}][shades][{{ $shadeIndex }}][swatch]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" @if ($isEdit && $model?->exists && $shade?->exists) data-upload-url="{{ route('admin.windows.shades.image', [$window, $model, $shade, 'swatch']) }}" data-upload-mode="replace" @endif>
+                @if ($isEdit && $model?->exists && $shade?->exists)
+                    <div class="small text-muted image-upload-status" aria-live="polite"></div>
+                @endif
+            </div>
         </div>
         <div class="col-md-4">
             <label class="form-label">Gallery images</label>
-            @if ($shade)
-                <div class="d-flex flex-wrap gap-2 mb-2">
+            <div class="image-upload-field">
+                @if ($shade?->images->isNotEmpty())
+                    <div class="existing-image-previews d-flex flex-wrap gap-2 mb-2">
                     @foreach ($shade->images as $image)
                         <img src="{{ $image->url }}" alt="{{ $shade->name }} gallery image" class="rounded" style="width:48px;height:48px;object-fit:cover;">
                     @endforeach
-                </div>
-            @endif
-            <input type="file" name="models[{{ $modelIndex }}][shades][{{ $shadeIndex }}][images][]" class="form-control" accept="image/jpeg,image/png,image/webp" multiple>
+                    </div>
+                @endif
+                <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                <input type="file" name="models[{{ $modelIndex }}][shades][{{ $shadeIndex }}][images][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple @if ($isEdit && $model?->exists && $shade?->exists) data-upload-url="{{ route('admin.windows.shades.image', [$window, $model, $shade, 'gallery']) }}" data-upload-mode="append" @endif>
+                @if ($isEdit && $model?->exists && $shade?->exists)
+                    <div class="small text-muted image-upload-status" aria-live="polite"></div>
+                @endif
+            </div>
         </div>
         <div class="col-12">
             <label class="form-label">Sizes (width x height in mm; comma or line separated)</label>

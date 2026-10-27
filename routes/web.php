@@ -31,6 +31,11 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::post('/products/import', [ProductImportController::class, 'store'])->name('products.import.store');
     Route::get('/windows/import', [WindowImportController::class, 'index'])->name('windows.import.index');
     Route::post('/windows/import', [WindowImportController::class, 'store'])->name('windows.import.store');
+    Route::post('/windows/{window}/models/{model}/image', [WindowController::class, 'uploadModelImage'])
+        ->name('windows.models.image');
+    Route::post('/windows/{window}/models/{model}/shades/{shade}/{kind}', [WindowController::class, 'uploadShadeImage'])
+        ->whereIn('kind', ['swatch', 'gallery'])
+        ->name('windows.shades.image');
     Route::resource('windows', WindowController::class)->except(['show']);
     Route::get('/products/french-door', [FrenchDoorController::class, 'index'])->name('products.french-door.index');
     Route::post('/products/french-door/options', [FrenchDoorController::class, 'store'])->name('products.french-door.options.store');

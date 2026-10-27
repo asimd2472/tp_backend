@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\WindowModel;
 use App\Models\WindowProduct;
 use App\Models\WindowShade;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -125,6 +126,69 @@ class WindowController extends Controller
         $this->deleteUploads($uploads);
 
         return redirect()->route('admin.windows.index')->with('success', 'Window product deleted successfully.');
+    }
+
+    public function uploadModelImage(Request $request, WindowProduct $window, WindowModel $model): JsonResponse
+    {
+        abort_unless((int) $model->window_product_id === (int) $window->id, 404);
+
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+        ]);
+
+        $oldImage = $model->main_image;
+        $path = $this->storePublicUpload($validated['image'], 'windows/models');
+        $model->update(['main_image' => $path]);
+        $this->deleteUploads([$oldImage]);
+
+        return response()->json([
+            'message' => 'Model image uploaded successfully.',
+            'image_url' => $model->main_image_url,
+        ]);
+    }
+
+    public function uploadShadeImage(
+        Request $request,
+        WindowProduct $window,
+        WindowModel $model,
+        WindowShade $shade,
+        string $kind,
+    ): JsonResponse {
+        abort_unless(
+            (int) $model->window_product_id === (int) $window->id
+                && (int) $shade->window_model_id === (int) $model->id,
+            404,
+        );
+        abort_unless(in_array($kind, ['swatch', 'gallery'], true), 404);
+
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+        ]);
+
+        if ($kind === 'swatch') {
+            $oldImage = $shade->swatch_image;
+            $path = $this->storePublicUpload($validated['image'], 'windows/shades');
+            $shade->update(['swatch_image' => $path]);
+            $this->deleteUploads([$oldImage]);
+
+            return response()->json([
+                'message' => 'Swatch image uploaded successfully.',
+                'image_url' => $shade->swatch_url,
+            ]);
+        }
+
+        $path = $this->storePublicUpload($validated['image'], 'windows/gallery');
+        $hasPrimary = $shade->images()->where('is_primary', true)->exists();
+        $image = $shade->images()->create([
+            'image_path' => $path,
+            'is_primary' => ! $hasPrimary,
+            'sort_order' => (int) $shade->images()->max('sort_order') + 1,
+        ]);
+
+        return response()->json([
+            'message' => 'Gallery image uploaded successfully.',
+            'image_url' => $image->url,
+        ]);
     }
 
     /**

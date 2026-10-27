@@ -73,10 +73,15 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label" for="main_image">Main product image</label>
-                    @if ($window->main_image)
-                        <img src="{{ asset('uploads/'.$window->main_image) }}" alt="{{ $window->name }}" class="d-block rounded mb-2" style="max-height:70px;">
-                    @endif
-                    <input id="main_image" type="file" name="main_image" class="form-control" accept="image/jpeg,image/png,image/webp">
+                    <div class="image-upload-field">
+                        @if ($window->main_image)
+                            <div class="existing-image-previews mb-2">
+                                <img src="{{ $window->thumbnail_url }}" alt="{{ $window->name }}" class="img-fluid rounded" style="max-height:70px;">
+                            </div>
+                        @endif
+                        <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                        <input id="main_image" type="file" name="main_image" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp">
+                    </div>
                 </div>
                 <div class="col-md-3 d-flex align-items-end gap-4 pb-2">
                     <div class="form-check">
@@ -148,6 +153,7 @@
                 @endforelse
             </div>
 
+            <div class="alert alert-danger d-none" id="window-image-upload-error" role="alert"></div>
             <div class="d-flex gap-2 mt-4">
                 <button type="submit" class="btn btn-primary btn-cta">{{ $isEdit ? 'Save window product' : 'Create window product' }}</button>
                 <a href="{{ route('admin.windows.index') }}" class="btn btn-outline-secondary">Back to windows</a>
@@ -174,6 +180,7 @@
     <script>
         (function () {
             const modelList = document.getElementById('window-model-list');
+            const windowForm = modelList.closest('form');
             const modelTemplate = document.getElementById('window-model-template').innerHTML;
             const shadeTemplate = document.getElementById('window-shade-template').innerHTML;
             let nextModel = Math.max(-1, ...Array.from(modelList.querySelectorAll('[name*="models["]'))
@@ -183,6 +190,90 @@
                 const index = nextModel++;
                 modelList.insertAdjacentHTML('beforeend', modelTemplate.replaceAll('__MODEL__', String(index)));
             });
+
+            windowForm.addEventListener('submit', function (event) {
+                const uploadInputs = Array.from(windowForm.querySelectorAll('input[type="file"][data-upload-url]'));
+                const error = document.getElementById('window-image-upload-error');
+                const isUploading = uploadInputs.some(input => input.dataset.uploading === '1');
+                const hasFailed = uploadInputs.some(input => input.dataset.uploadFailed === '1');
+
+                if (isUploading || hasFailed) {
+                    event.preventDefault();
+                    error.textContent = isUploading
+                        ? 'Please wait for the image uploads to finish before saving.'
+                        : 'Please fix the failed image upload before saving.';
+                    error.classList.remove('d-none');
+                }
+            });
+
+            async function uploadSelectedImages(input) {
+                const files = Array.from(input.files || []);
+                if (!files.length || !input.dataset.uploadUrl) {
+                    return;
+                }
+
+                const field = input.closest('.image-upload-field');
+                const status = field.querySelector('.image-upload-status');
+                const previewList = field.querySelector('.image-upload-previews');
+                const mode = input.dataset.uploadMode;
+                input.dataset.uploading = '1';
+                delete input.dataset.uploadFailed;
+                status.className = 'small text-muted image-upload-status';
+                status.textContent = `Uploading ${files.length} image${files.length === 1 ? '' : 's'}…`;
+
+                try {
+                    let existing = field.querySelector('.existing-image-previews');
+                    if (!existing) {
+                        existing = document.createElement('div');
+                        existing.className = 'existing-image-previews d-flex flex-wrap gap-2 mb-2';
+                        field.insertBefore(existing, previewList);
+                    }
+
+                    for (const file of files) {
+                        const body = new FormData();
+                        body.append('image', file);
+                        const response = await fetch(input.dataset.uploadUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                            },
+                            body,
+                        });
+                        const result = await response.json().catch(() => ({}));
+                        if (!response.ok) {
+                            const validationMessage = Object.values(result.errors || {}).flat()[0];
+                            throw new Error(validationMessage || result.message || 'Image upload failed.');
+                        }
+
+                        let image = mode === 'append' ? null : existing.querySelector('img');
+                        if (!image) {
+                            image = document.createElement('img');
+                            image.className = mode === 'append'
+                                ? 'rounded'
+                                : 'img-fluid rounded';
+                            image.style.height = mode === 'append' ? '64px' : '70px';
+                            image.style.width = mode === 'append' ? '64px' : 'auto';
+                            image.style.objectFit = 'cover';
+                            image.alt = mode === 'append' ? 'Gallery image' : 'Uploaded image';
+                            existing.appendChild(image);
+                        }
+                        image.src = result.image_url;
+                    }
+
+                    previewList.replaceChildren();
+                    input.value = '';
+                    status.className = 'small text-success image-upload-status';
+                    status.textContent = `${files.length} image${files.length === 1 ? '' : 's'} uploaded.`;
+                } catch (error) {
+                    input.dataset.uploadFailed = '1';
+                    input.value = '';
+                    status.className = 'small text-danger image-upload-status';
+                    status.textContent = `${error.message} Successfully uploaded images are kept; select any remaining images to retry.`;
+                } finally {
+                    delete input.dataset.uploading;
+                }
+            }
 
             document.addEventListener('click', function (event) {
                 const addShade = event.target.closest('[data-add-window-shade]');
@@ -215,6 +306,39 @@
                 const removeQuestion = event.target.closest('[data-question-remove]');
                 if (removeQuestion) {
                     removeQuestion.closest('[data-question-item]').remove();
+                }
+            });
+
+            document.addEventListener('change', function (event) {
+                const input = event.target;
+                if (! input.matches('input[type="file"].image-preview-input')) {
+                    return;
+                }
+
+                const field = input.closest('.image-upload-field');
+                const previewList = field?.querySelector('.image-upload-previews');
+                if (!previewList) {
+                    return;
+                }
+
+                previewList.replaceChildren();
+                Array.from(input.files || []).forEach(function (file) {
+                    if (! file.type.startsWith('image/')) {
+                        return;
+                    }
+
+                    const preview = document.createElement('img');
+                    preview.src = URL.createObjectURL(file);
+                    preview.alt = file.name;
+                    preview.className = 'rounded';
+                    preview.style.height = '64px';
+                    preview.style.width = '64px';
+                    preview.style.objectFit = 'cover';
+                    previewList.appendChild(preview);
+                });
+
+                if (input.dataset.uploadUrl) {
+                    uploadSelectedImages(input);
                 }
             });
 
