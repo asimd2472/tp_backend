@@ -1,11 +1,15 @@
 <?php
 
+use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductDetailsController;
 use App\Http\Controllers\Api\WindowCatalogController;
 use App\Http\Controllers\FrenchDoorOptionsController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/blogs', [BlogController::class, 'index'])
+    ->name('api.blogs.index');
 
 Route::get('/products', [ProductCatalogController::class, 'index'])
     ->name('api.products.index');

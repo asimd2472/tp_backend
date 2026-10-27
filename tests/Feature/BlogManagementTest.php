@@ -13,6 +13,63 @@ class BlogManagementTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_public_blog_api_returns_published_posts_with_pagination(): void
+    {
+        BlogPost::create([
+            'title' => 'Older published post',
+            'slug' => 'older-published-post',
+            'status' => 'published',
+            'published_at' => now()->subDay(),
+            'featured_image' => 'blogs/featured/older.jpg',
+        ]);
+        BlogPost::create([
+            'title' => 'Newest published post',
+            'slug' => 'newest-published-post',
+            'status' => 'published',
+            'published_at' => now(),
+        ]);
+        BlogPost::create([
+            'title' => 'Draft post',
+            'slug' => 'draft-post',
+            'status' => 'draft',
+            'published_at' => null,
+        ]);
+        BlogPost::create([
+            'title' => 'Scheduled post',
+            'slug' => 'scheduled-post',
+            'status' => 'published',
+            'published_at' => now()->addDay(),
+        ]);
+
+        $this->getJson(route('api.blogs.index', ['per_page' => 1]))
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.0.slug', 'newest-published-post')
+            ->assertJsonPath('pagination.current_page', 1)
+            ->assertJsonPath('pagination.per_page', 1)
+            ->assertJsonPath('pagination.total', 2)
+            ->assertJsonPath('pagination.last_page', 2)
+            ->assertJsonPath('pagination.from', 1)
+            ->assertJsonPath('pagination.to', 1)
+            ->assertJsonStructure([
+                'success',
+                'data' => [['id', 'title', 'slug', 'featured_image_url', 'published_at']],
+                'pagination' => ['current_page', 'per_page', 'total', 'last_page', 'from', 'to', 'next_page_url', 'prev_page_url'],
+            ]);
+
+        $this->getJson(route('api.blogs.index', ['per_page' => 1, 'page' => 2]))
+            ->assertOk()
+            ->assertJsonPath('data.0.slug', 'older-published-post')
+            ->assertJsonPath('pagination.prev_page_url', route('api.blogs.index', ['per_page' => 1, 'page' => 1]));
+    }
+
+    public function test_public_blog_api_validates_pagination_parameters(): void
+    {
+        $this->getJson(route('api.blogs.index', ['per_page' => 101]))
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors('per_page');
+    }
+
     public function test_admin_can_create_update_and_delete_a_rich_blog_post(): void
     {
         $this->actingAs(User::factory()->admin()->create());
