@@ -10,6 +10,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/blogs', [BlogController::class, 'index'])
     ->name('api.blogs.index');
+Route::get('/blog-details/{slug}', [BlogController::class, 'details'])
+    ->name('api.blogs.details');
 
 Route::get('/products', [ProductCatalogController::class, 'index'])
     ->name('api.products.index');

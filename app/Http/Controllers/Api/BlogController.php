@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class BlogController extends Controller
 {
@@ -37,7 +38,20 @@ class BlogController extends Controller
                 'category' => $post->category,
                 'tags' => $post->tags,
                 'excerpt' => $post->excerpt,
-                'content' => $post->content,
+                // 'content' => $post->content,
+                'content' => Str::limit(
+                    trim(preg_replace(
+                        '/\s+/u',
+                        ' ',
+                        html_entity_decode(
+                            strip_tags($post->content ?? ''),
+                            ENT_QUOTES | ENT_HTML5,
+                            'UTF-8'
+                        )
+                    ) ?? ''),
+                    100,
+                    '...'
+                ),
                 'featured_image_url' => $post->featured_image_url,
                 'meta_title' => $post->meta_title,
                 'meta_description' => $post->meta_description,
@@ -55,4 +69,42 @@ class BlogController extends Controller
             ],
         ]);
     }
+
+    public function details(string $slug): JsonResponse
+    {
+        $post = BlogPost::query()
+            ->where('slug', $slug)
+            ->where('status', 'published')
+            ->where(function ($query): void {
+                $query->whereNull('published_at')
+                    ->orWhere('published_at', '<=', now());
+            })
+            ->first();
+
+        if (!$post) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Blog post not found.',
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $post->id,
+                'title' => $post->title,
+                'slug' => $post->slug,
+                'category' => $post->category,
+                'tags' => $post->tags,
+                'excerpt' => $post->excerpt,
+                'content' => $post->content,
+                'featured_image_url' => $post->featured_image_url,
+                'meta_title' => $post->meta_title,
+                'meta_description' => $post->meta_description,
+                'published_at' => $post->published_at?->toISOString(),
+            ],
+        ]);
+    }
 }
+
+
