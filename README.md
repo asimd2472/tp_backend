@@ -75,6 +75,12 @@ The window catalog API is available at `GET /api/windows`, `GET /api/windows/{sl
 
 Administrators can manage posts from **Blog** in the admin sidebar. Posts can be saved as drafts or published, and include a title, slug, category, tags, excerpt, featured image, and search-engine metadata. The rich text editor supports formatted text, headings, lists, links, tables, media, fullscreen editing, and HTML source editing. Images inserted into the article are uploaded to `public/uploads/blogs/content`; featured images are stored separately under `public/uploads/blogs/featured`.
 
+## Email OTP API
+
+The customer flow is email-first. Submit `email` to `POST /api/login` to send a six-digit code, then submit `email` and `otp` to `POST /api/verify-otp`. The response includes `is_registered`: existing customers receive their user details and a Sanctum Bearer token; new customers receive a short-lived `registration_token` and can finish registration with `email`, `registration_token`, `name`, and `phone` at `POST /api/register`. Registration accepts `phone_no` as an alias for `phone`. Codes expire after 10 minutes, can be resent with `POST /api/resend-otp` no more than once per minute, and allow five verification attempts. API tokens expire after 30 days. Use them with `GET /api/auth/me`; revoke them with `POST /api/auth/logout`.
+
+Registration, login, verification, and resend requests require an allowed `Origin` header. Configure `FRONTEND_ORIGINS` as a comma-separated list of exact origins, for example `https://store.example.com,https://www.store.example.com`. Configure Laravel's `MAIL_*` settings to deliver OTP messages. Admin accounts continue to use the existing admin login and do not receive customer OTPs.
+
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).

@@ -54,6 +54,11 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'frontend_origins' => array_values(array_filter(array_map(
+        'trim',
+        explode(',', env('FRONTEND_ORIGINS', 'https://example.com,https://www.example.com')),
+    ))),
+
     'default_color_code' => env('DEFAULT_COLOR_CODE'),
 
     /*

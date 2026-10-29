@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductController;
@@ -38,3 +39,23 @@ Route::get('/window-details', [WindowCatalogController::class, 'windowDetails'])
     ->name('api.window-details');
 Route::get('/window-details/{model_id}', [WindowCatalogController::class, 'windowDetails'])
     ->name('api.window-details-by-id');
+
+
+
+Route::post('/register', [AuthController::class, 'register'])
+    ->middleware(['frontend.origin', 'throttle:5,1'])
+    ->name('api.auth.register');
+Route::post('/login', [AuthController::class, 'login'])
+    ->middleware(['frontend.origin', 'throttle:5,1'])
+    ->name('api.auth.login');
+Route::post('/verify-otp', [AuthController::class, 'verifyOtp'])
+    ->middleware(['frontend.origin', 'throttle:10,1'])
+    ->name('api.auth.verify-otp');
+Route::post('/resend-otp', [AuthController::class, 'resendOtp'])
+    ->middleware(['frontend.origin', 'throttle:5,1'])
+    ->name('api.auth.resend-otp');
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/auth/me', [AuthController::class, 'me'])->name('api.auth.me');
+    Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+});
