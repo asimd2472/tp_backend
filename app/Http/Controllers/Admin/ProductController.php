@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class ProductController extends Controller
@@ -60,6 +61,9 @@ class ProductController extends Controller
             'models.*.is_default' => ['nullable', 'boolean'],
             'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.sizes' => ['nullable', 'string', 'max:10000'],
+            'models.*.designs.*.images.*.file' => ['nullable', 'array'],
+            'models.*.designs.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
             'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
@@ -100,6 +104,8 @@ class ProductController extends Controller
     public function edit(Product $product): View
     {
         $product->load([
+            'models.designs.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+            'models.designs.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
             'models.designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
             'models.designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
         ]);
@@ -136,6 +142,9 @@ class ProductController extends Controller
             'models.*.is_default' => ['nullable', 'boolean'],
             'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.sizes' => ['nullable', 'string', 'max:10000'],
+            'models.*.designs.*.images.*.file' => ['nullable', 'array'],
+            'models.*.designs.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
             'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
@@ -258,10 +267,41 @@ class ProductController extends Controller
         ]);
     }
 
+    public function uploadDesignGalleryImage(Request $request, Product $product, ProductModel $model, ProductDesign $design): JsonResponse
+    {
+        abort_unless(
+            (int) $model->product_id === (int) $product->id
+                && (int) $design->product_id === (int) $product->id
+                && (int) $design->product_model_id === (int) $model->id,
+            404,
+        );
+
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+        ]);
+
+        $image = $design->images()->create([
+            'image_path' => $this->storePublicUpload($validated['image'], 'products/design-gallery'),
+            'is_primary' => ! $design->images()->where('is_primary', true)->exists(),
+            'sort_order' => (int) $design->images()->max('sort_order') + 1,
+        ]);
+
+        return response()->json([
+            'message' => 'Design gallery image uploaded successfully.',
+            'image_url' => $image->url,
+        ]);
+    }
+
     public function destroy(Product $product): RedirectResponse
     {
         DB::transaction(function () use ($product) {
             foreach ($product->designs as $design) {
+                foreach ($design->images as $image) {
+                    if ($image->image_path) {
+                        File::delete(public_path('uploads/'.$image->image_path));
+                    }
+                }
+
                 foreach ($design->shades as $shade) {
                     foreach ($shade->images as $image) {
                         if ($image->image_path) {
@@ -407,9 +447,86 @@ class ProductController extends Controller
 
             $design->save();
 
+            if (isset($designData['images']) && is_array($designData['images'])) {
+                $this->syncDesignImages($design, $designData['images']);
+            }
+
+            $shadeData = $designData['shades'] ?? [];
+            $shades = is_array($shadeData)
+                ? array_filter(
+                    $shadeData,
+                    fn ($item) => is_array($item) && trim((string) ($item['name'] ?? '')) !== '',
+                )
+                : [];
+
+            if ($shades !== []) {
+                $design->sizes()->delete();
+            } elseif (array_key_exists('sizes', $designData)) {
+                $this->syncDesignSizes($design, (string) $designData['sizes']);
+            }
+
             if (isset($designData['shades']) && is_array($designData['shades'])) {
                 $this->syncShades($design, $designData['shades']);
             }
+        }
+    }
+
+    protected function syncDesignImages(ProductDesign $design, array $images): void
+    {
+        foreach ($images as $index => $imageData) {
+            if (! is_array($imageData)) {
+                continue;
+            }
+
+            $file = $imageData['file'] ?? null;
+            $files = is_array($file) ? $file : [$file];
+            foreach ($files as $fileIndex => $uploadedFile) {
+                if (! $uploadedFile instanceof UploadedFile) {
+                    continue;
+                }
+
+                $design->images()->create([
+                    'image_path' => $this->storePublicUpload($uploadedFile, 'products/design-gallery'),
+                    'is_primary' => ! $design->images()->where('is_primary', true)->exists(),
+                    'sort_order' => (int) $design->images()->max('sort_order') + 1,
+                ]);
+            }
+        }
+    }
+
+    protected function syncDesignSizes(ProductDesign $design, string $input): void
+    {
+        $pairs = [];
+        foreach (preg_split('/[,;|\\r\\n]+/', $input) ?: [] as $value) {
+            $value = trim($value);
+            if ($value === '') {
+                continue;
+            }
+
+            if (preg_match('/^(\\d+)\\s*[xX]\\s*(\\d+)$/', $value, $matches) !== 1) {
+                throw ValidationException::withMessages([
+                    'sizes' => 'Enter each design size as width x height, for example 900x2050.',
+                ]);
+            }
+
+            $width = (int) $matches[1];
+            $height = (int) $matches[2];
+            if ($width < 1 || $height < 1 || $width > 65535 || $height > 65535) {
+                throw ValidationException::withMessages([
+                    'sizes' => 'Design sizes must be between 1 and 65535 mm.',
+                ]);
+            }
+
+            $pairs[$width.'x'.$height] = [$width, $height];
+        }
+
+        $design->sizes()->delete();
+        foreach (array_values($pairs) as $index => [$width, $height]) {
+            $design->sizes()->create([
+                'width_mm' => $width,
+                'height_mm' => $height,
+                'sort_order' => $index,
+            ]);
         }
     }
 

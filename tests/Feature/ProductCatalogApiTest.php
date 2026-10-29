@@ -150,6 +150,51 @@ class ProductCatalogApiTest extends TestCase
         $this->assertSame($withoutModelId->json(), $withBlankModelId->json());
     }
 
+    public function test_product_details_returns_a_design_gallery_when_the_design_has_no_shades(): void
+    {
+        $product = Product::create([
+            'name' => 'Shade-free Door',
+            'slug' => 'shade-free-door',
+        ]);
+        $model = $product->models()->create([
+            'name' => 'Plain Model',
+            'slug' => 'shade-free-door-plain',
+            'is_default' => true,
+        ]);
+        $design = $model->designs()->create([
+            'product_id' => $product->id,
+            'name' => 'Plain Design',
+        ]);
+        $design->images()->create([
+            'image_path' => 'products/design-gallery/front.jpg',
+            'is_primary' => true,
+        ]);
+        $size = $design->sizes()->create([
+            'width_mm' => 900,
+            'height_mm' => 2050,
+        ]);
+
+        $this->getJson(route('api.product-details', ['product_slug' => $product->slug]))
+            ->assertOk()
+            ->assertJsonPath('designs.0.id', $design->id)
+            ->assertJsonPath('designs.0.primary_image_url', asset('uploads/products/design-gallery/front.jpg'))
+            ->assertJsonPath('designs.0.gallery.0.url', asset('uploads/products/design-gallery/front.jpg'))
+            ->assertJsonPath('designs.0.gallery.0.is_primary', true)
+            ->assertJsonPath('designs.0.sizes.0.width_mm', 900)
+            ->assertJsonPath('designs.0.sizes.0.label', '900 × 2050 mm')
+            ->assertJsonPath('designs.0.shades', [])
+            ->assertJsonPath('defaults.shade_id', null)
+            ->assertJsonPath('defaults.size_id', $size->id);
+
+        $this->getJson(route('api.products.show', $model->slug))
+            ->assertOk()
+            ->assertJsonPath('designs.0.primary_image_url', asset('uploads/products/design-gallery/front.jpg'))
+            ->assertJsonPath('designs.0.gallery.0.is_primary', true)
+            ->assertJsonPath('designs.0.sizes.0.width_mm', 900)
+            ->assertJsonPath('designs.0.shades', [])
+            ->assertJsonPath('defaults.size_id', $size->id);
+    }
+
     public function test_it_requires_a_product_slug_for_product_details(): void
     {
         $this->getJson('/api/product-details?model_id=25')

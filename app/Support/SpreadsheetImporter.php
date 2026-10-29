@@ -98,6 +98,7 @@ class SpreadsheetImporter
                         $designs++;
 
                         $shadeName = trim((string) ($normalized['shade'] ?? ''));
+                        $sizeOwner = $design;
                         if ($shadeName !== '') {
                             $shadeKey = $design->getKey().':'.$this->cacheKey($shadeName);
                             if (! isset($shadeCache[$shadeKey])) {
@@ -116,34 +117,35 @@ class SpreadsheetImporter
                             }
                             $shade = $shadeCache[$shadeKey];
                             $shades++;
+                            $sizeOwner = $shade;
+                        }
 
-                            $sizeString = trim((string) ($normalized['size'] ?? ''));
-                            $sizeValues = preg_split('/[;,|\\n]+/', $sizeString) ?: [];
+                        $sizeString = trim((string) ($normalized['size'] ?? ''));
+                        $sizeValues = preg_split('/[;,|\\n]+/', $sizeString) ?: [];
 
-                            foreach ($sizeValues as $value) {
-                                $clean = trim((string) $value);
-                                if ($clean === '') {
-                                    continue;
-                                }
-
-                                $pair = preg_split('/[xX]/', $clean, 2);
-                                if (count($pair) !== 2) {
-                                    $errors[] = 'Invalid size value on row '.($globalIndex + 2).': '.$clean;
-                                    continue;
-                                }
-
-                                $width = (int) trim($pair[0]);
-                                $height = (int) trim($pair[1]);
-                                if ($width <= 0 || $height <= 0) {
-                                    $errors[] = 'Invalid size value on row '.($globalIndex + 2).': '.$clean;
-                                    continue;
-                                }
-
-                                $shade->sizes()->firstOrCreate([
-                                    'width_mm' => $width,
-                                    'height_mm' => $height,
-                                ]);
+                        foreach ($sizeValues as $value) {
+                            $clean = trim((string) $value);
+                            if ($clean === '') {
+                                continue;
                             }
+
+                            $pair = preg_split('/[xX]/', $clean, 2);
+                            if (count($pair) !== 2) {
+                                $errors[] = 'Invalid size value on row '.($globalIndex + 2).': '.$clean;
+                                continue;
+                            }
+
+                            $width = (int) trim($pair[0]);
+                            $height = (int) trim($pair[1]);
+                            if ($width <= 0 || $height <= 0) {
+                                $errors[] = 'Invalid size value on row '.($globalIndex + 2).': '.$clean;
+                                continue;
+                            }
+
+                            $sizeOwner->sizes()->firstOrCreate([
+                                'width_mm' => $width,
+                                'height_mm' => $height,
+                            ]);
                         }
                     }
                 }

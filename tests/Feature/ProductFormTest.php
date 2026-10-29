@@ -51,6 +51,7 @@ class ProductFormTest extends TestCase
             ->assertSee('Show / hide', false)
             ->assertSee('<details class="mt-3 border rounded p-3 size-combinations">', false)
             ->assertSee('models[0][designs][0][id]', false)
+            ->assertSee('Design gallery images')
             ->assertSee('models[0][designs][0][shades][0][id]', false)
             ->assertSee('multiple', false)
             ->assertSee('Default model', false)
@@ -155,10 +156,12 @@ class ProductFormTest extends TestCase
             ->assertOk()
             ->assertSee('name="models[0][main_image]"', false)
             ->assertSee('name="models[0][designs][0][thumbnail]"', false)
+            ->assertSee('name="models[0][designs][0][images][0][file][]"', false)
             ->assertSee('name="models[0][designs][0][shades][0][swatch]"', false)
             ->assertSee('name="models[0][designs][0][shades][0][images][0][file][]"', false)
             ->assertSee('name="models[1][main_image]"', false)
             ->assertSee('name="models[1][designs][0][thumbnail]"', false)
+            ->assertSee('name="models[1][designs][0][images][0][file][]"', false)
             ->assertSee('name="models[1][designs][0][shades][0][swatch]"', false)
             ->assertSee('name="models[1][designs][0][shades][0][images][0][file][]"', false);
     }
@@ -377,6 +380,116 @@ class ProductFormTest extends TestCase
         } finally {
             File::delete($imagePath);
         }
+    }
+
+    public function test_admin_can_upload_gallery_images_directly_to_a_design(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $product = Product::create([
+            'name' => 'Design gallery upload test',
+            'slug' => 'design-gallery-upload-test',
+        ]);
+        $model = $product->models()->create(['name' => 'Model A', 'slug' => 'design-gallery-model-a']);
+        $design = $model->designs()->create([
+            'product_id' => $product->id,
+            'name' => 'Shade-free design',
+        ]);
+
+        $response = $this->postJson(route('admin.products.designs.images', [$product, $model, $design]), [
+            'image' => UploadedFile::fake()->image('design-gallery.jpg'),
+        ])->assertOk()->assertJsonPath('message', 'Design gallery image uploaded successfully.');
+
+        $image = $design->images()->firstOrFail();
+        try {
+            $this->assertTrue($image->is_primary);
+            $this->assertFileExists(public_path('uploads/'.$image->image_path));
+            $this->assertSame(asset('uploads/'.$image->image_path), $response->json('image_url'));
+        } finally {
+            File::delete(public_path('uploads/'.$image->image_path));
+        }
+    }
+
+    public function test_admin_can_create_a_shade_free_design_with_gallery_images(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->post(route('admin.products.store'), [
+            'name' => 'Shade-free gallery product',
+            'models' => [[
+                'name' => 'Model A',
+                'is_default' => '1',
+                'designs' => [[
+                    'name' => 'Design A',
+                    'sizes' => '900x2050, 900x2100',
+                    'images' => [[
+                        'file' => [UploadedFile::fake()->image('design-gallery-create.jpg')],
+                    ]],
+                ]],
+            ]],
+        ])->assertRedirect(route('admin.products.index'));
+
+        $product = Product::query()->where('name', 'Shade-free gallery product')->firstOrFail();
+        $design = $product->models()->firstOrFail()->designs()->firstOrFail();
+        $image = $design->images()->firstOrFail();
+
+        try {
+            $this->assertSame(0, $design->shades()->count());
+            $this->assertSame(2, $design->sizes()->count());
+            $this->assertFileExists(public_path('uploads/'.$image->image_path));
+            $this->get(route('admin.products.edit', $product))
+                ->assertOk()
+                ->assertSee('Design sizes (width x height in mm)')
+                ->assertSee('900x2050');
+
+            $this->put(route('admin.products.update', $product), [
+                'name' => $product->name,
+                'models' => [[
+                    'id' => $product->models()->firstOrFail()->id,
+                    'name' => 'Model A',
+                    'is_default' => '1',
+                    'designs' => [[
+                        'id' => $design->id,
+                        'name' => 'Design A',
+                        'sizes' => '1000x2100',
+                    ]],
+                ]],
+            ])->assertRedirect(route('admin.products.index'));
+            $this->assertDatabaseHas('product_design_sizes', [
+                'product_design_id' => $design->id,
+                'width_mm' => 1000,
+                'height_mm' => 2100,
+            ]);
+
+            $this->getJson(route('api.products.show', $product->models()->firstOrFail()->slug))
+                ->assertOk()
+                ->assertJsonPath('designs.0.gallery.0.url', asset('uploads/'.$image->image_path))
+                ->assertJsonPath('designs.0.sizes.0.width_mm', 1000)
+                ->assertJsonPath('designs.0.shades', []);
+        } finally {
+            File::delete(public_path('uploads/'.$image->image_path));
+        }
+    }
+
+    public function test_design_sizes_reject_invalid_measurements(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->from(route('admin.products.create'))
+            ->post(route('admin.products.store'), [
+                'name' => 'Invalid design size product',
+                'models' => [[
+                    'name' => 'Model A',
+                    'designs' => [[
+                        'name' => 'Design A',
+                        'sizes' => '0x2050',
+                    ]],
+                ]],
+            ])
+            ->assertRedirect(route('admin.products.create'))
+            ->assertSessionHasErrors('sizes');
+
+        $this->assertDatabaseMissing('products', ['name' => 'Invalid design size product']);
     }
 
     public function test_create_uploads_model_and_design_images_for_multiple_models(): void

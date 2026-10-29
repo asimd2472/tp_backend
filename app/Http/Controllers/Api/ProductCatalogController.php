@@ -89,6 +89,8 @@ class ProductCatalogController extends Controller
     public function show(string $slug): JsonResponse
     {
         $model = ProductModel::query()->where('slug', $slug)->with([
+            'designs.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+            'designs.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
             'designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
             'designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
             'product',
@@ -96,6 +98,8 @@ class ProductCatalogController extends Controller
 
         if (! $model) {
             $product = Product::query()->where('slug', $slug)->with([
+                'models.designs.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+                'models.designs.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
                 'models.designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
                 'models.designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
             ])->firstOrFail();
@@ -123,6 +127,12 @@ class ProductCatalogController extends Controller
         $product = $model->product;
 
         $designs = $model->designs->map(function ($design) {
+            $gallery = $design->images->map(fn ($image) => [
+                'id' => $image->id,
+                'url' => $image->url,
+                'is_primary' => (bool) $image->is_primary,
+            ])->values();
+            $primary = $gallery->firstWhere('is_primary', true);
             $shades = $design->shades->map(function ($shade) {
                 $images = $shade->images->map(fn ($image) => [
                     'id' => $image->id,
@@ -153,13 +163,23 @@ class ProductCatalogController extends Controller
                 'name' => $design->name,
                 'code' => $design->code,
                 'thumbnail_url' => $design->thumbnail_url,
+                'primary_image_url' => $primary['url'] ?? ($gallery->first()['url'] ?? null),
+                'gallery' => $gallery,
                 'shades' => $shades,
+                ...($shades->isEmpty() ? ['sizes' => $design->sizes->map(fn ($size) => [
+                    'id' => $size->id,
+                    'width_mm' => (int) $size->width_mm,
+                    'height_mm' => (int) $size->height_mm,
+                    'label' => $size->width_mm.' × '.$size->height_mm.' mm',
+                ])->values()] : []),
             ];
         })->values();
 
         $defaultDesign = $designs->first();
-        $defaultShade = $defaultDesign['shades']->first() ?? null;
-        $defaultSize = $defaultShade['sizes']->first() ?? null;
+        $defaultShade = $defaultDesign ? $defaultDesign['shades']->first() : null;
+        $defaultSize = $defaultShade
+            ? $defaultShade['sizes']->first()
+            : ($defaultDesign ? ($defaultDesign['sizes']->first() ?? null) : null);
 
         return response()->json([
             'success' => true,
@@ -239,6 +259,8 @@ class ProductCatalogController extends Controller
         $modelQuery = ProductModel::query()
             ->where('product_id', $product->id)
             ->with([
+                'designs.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
+                'designs.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
                 'designs.shades.images' => fn ($query) => $query->orderBy('sort_order')->orderBy('id'),
                 'designs.shades.sizes' => fn ($query) => $query->orderBy('width_mm')->orderBy('height_mm'),
             ]);
@@ -252,6 +274,12 @@ class ProductCatalogController extends Controller
         $model = $modelQuery->firstOrFail();
 
         $designs = $model->designs->map(function ($design) {
+            $gallery = $design->images->map(fn ($image) => [
+                'id' => $image->id,
+                'url' => $this->resolveImageUrl($image->image_path),
+                'is_primary' => (bool) $image->is_primary,
+            ])->values();
+            $primary = $gallery->firstWhere('is_primary', true);
             $shades = $design->shades->map(function ($shade) {
                 $gallery = $shade->images->map(fn ($image) => [
                     'id' => $image->id,
@@ -284,7 +312,15 @@ class ProductCatalogController extends Controller
                 'name' => $design->name,
                 'code' => $design->code,
                 'thumbnail_url' => $this->resolveImageUrl($design->thumbnail_image, 'uploads/default/model.webp'),
+                'primary_image_url' => $primary['url'] ?? ($gallery->first()['url'] ?? null),
+                'gallery' => $gallery,
                 'shades' => $shades,
+                ...($shades->isEmpty() ? ['sizes' => $design->sizes->map(fn ($size) => [
+                    'id' => $size->id,
+                    'width_mm' => (int) $size->width_mm,
+                    'height_mm' => (int) $size->height_mm,
+                    'label' => $size->width_mm.' × '.$size->height_mm.' mm',
+                ])->values()] : []),
             ];
         })->values();
 
@@ -296,6 +332,8 @@ class ProductCatalogController extends Controller
             $defaultShade = $defaultDesign['shades']->first() ?? null;
             if ($defaultShade) {
                 $defaultSize = $defaultShade['sizes']->first() ?? null;
+            } else {
+                $defaultSize = $defaultDesign['sizes']->first() ?? null;
             }
         }
 

@@ -35,6 +35,16 @@ class ProductDesign extends Model
         return $this->hasMany(ProductShade::class)->orderBy('sort_order')->orderBy('id');
     }
 
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductDesignImage::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function sizes(): HasMany
+    {
+        return $this->hasMany(ProductDesignSize::class)->orderBy('width_mm')->orderBy('height_mm');
+    }
+
     public function getThumbnailUrlAttribute(): ?string
     {
         if (! $this->thumbnail_image) {

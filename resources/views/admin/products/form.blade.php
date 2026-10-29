@@ -251,6 +251,31 @@
                                                 </div>
                                             </div>
 
+                                            <div class="mt-3">
+                                                <label class="form-label">Design gallery images</label>
+                                                <div class="image-upload-field">
+                                                    @if ($design->images->isNotEmpty())
+                                                        <div class="existing-image-previews d-flex flex-wrap gap-2 mb-2">
+                                                            @foreach ($design->images as $image)
+                                                                <img src="{{ $image->url }}" class="rounded" style="height: 64px; width: 64px; object-fit: cover;" alt="{{ $design->name }} gallery image">
+                                                            @endforeach
+                                                        </div>
+                                                    @endif
+                                                    <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                                    <input type="file" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple data-upload-url="{{ $isEdit ? route('admin.products.designs.images', [$product, $model, $design]) : '' }}" data-upload-mode="append">
+                                                    @if ($isEdit)
+                                                        <div class="small text-muted image-upload-status" aria-live="polite"></div>
+                                                    @endif
+                                                </div>
+                                            </div>
+
+                                            @if ($design->shades->isEmpty())
+                                                <div class="mt-3" data-design-size-field>
+                                                    <label class="form-label">Design sizes (width x height in mm)</label>
+                                                    <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][sizes]" class="form-control" value="{{ old('models.'.$loop->parent->index.'.designs.'.$loop->index.'.sizes', $design->sizes->map(fn ($size) => $size->width_mm.'x'.$size->height_mm)->implode(', ')) }}" placeholder="900x2050, 900x2100">
+                                                </div>
+                                            @endif
+
                                         <div class="mt-3">
                                             <h4 class="h6">Shades</h4>
                                             <div class="shade-list">
@@ -549,6 +574,20 @@
                     </div>
                 `;
                 shadeList.insertAdjacentHTML('beforeend', template);
+                syncDesignSizeField(designBlock);
+            }
+
+            function syncDesignSizeField(designBlock) {
+                const field = designBlock.querySelector('[data-design-size-field]');
+                if (!field) {
+                    return;
+                }
+
+                const hasShades = designBlock.querySelectorAll('.shade-block').length > 0;
+                field.classList.toggle('d-none', hasShades);
+                field.querySelectorAll('input').forEach(input => {
+                    input.disabled = hasShades;
+                });
             }
 
             function addDesignBlock(modelIndex) {
@@ -581,6 +620,17 @@
                                 <div class="col-md-2 text-end">
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-design">Remove</button>
                                 </div>
+                            </div>
+                            <div class="mt-3">
+                                <label class="form-label">Design gallery images</label>
+                                <div class="image-upload-field">
+                                    <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
+                                    <input type="file" name="models[${modelIndex}][designs][${count}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple>
+                                </div>
+                            </div>
+                            <div class="mt-3" data-design-size-field>
+                                <label class="form-label">Design sizes (width x height in mm)</label>
+                                <input type="text" name="models[${modelIndex}][designs][${count}][sizes]" class="form-control" placeholder="900x2050, 900x2100" data-design-size-input>
                             </div>
                             <div class="mt-3">
                                 <h4 class="h6">Shades</h4>
@@ -647,7 +697,9 @@
                     return;
                 }
                 if (target.classList.contains('remove-shade')) {
+                    const designBlock = target.closest('.design-block');
                     target.closest('.shade-block').remove();
+                    syncDesignSizeField(designBlock);
                     return;
                 }
                 if (target.classList.contains('add-design')) {
@@ -704,6 +756,8 @@
                     previewList.appendChild(preview);
                 });
             });
+
+            modelList.querySelectorAll('.design-block').forEach(syncDesignSizeField);
         })();
     </script>
 @endsection

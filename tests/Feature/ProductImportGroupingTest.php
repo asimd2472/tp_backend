@@ -33,6 +33,32 @@ CSV
         $this->assertEqualsCanonicalizing(['Interio Basic', 'Classic'], Product::query()->first()->models()->pluck('name')->all());
     }
 
+    public function test_import_keeps_a_design_when_the_shade_cell_is_blank(): void
+    {
+        $file = $this->temporaryCsvPath();
+        file_put_contents($file, <<<'CSV'
+product name,Models,Designs,Shades,Sizes
+Plain Doors,Classic,No Shade Design,,"900X2050, 900X2100"
+CSV
+        );
+
+        try {
+            $result = (new SpreadsheetImporter())->importFromFile($file);
+        } finally {
+            unlink($file);
+        }
+
+        $design = Product::query()->firstOrFail()->models()->firstOrFail()->designs()->firstOrFail();
+
+        $this->assertSame([], $result['errors']);
+        $this->assertSame('No Shade Design', $design->name);
+        $this->assertSame(0, $design->shades()->count());
+        $this->assertEqualsCanonicalizing(
+            ['900x2050', '900x2100'],
+            $design->sizes()->get()->map(fn ($size) => $size->width_mm.'x'.$size->height_mm)->all(),
+        );
+    }
+
     public function test_import_matches_shade_colors_and_uses_the_configured_default_when_unavailable(): void
     {
         config(['app.default_color_code' => '#112233']);

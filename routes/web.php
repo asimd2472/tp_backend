@@ -25,6 +25,8 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     Route::resource('products', ProductController::class)->except(['show']);
     Route::post('/products/{product}/models/{model}/image', [ProductController::class, 'uploadModelImage'])
         ->name('products.models.image');
+    Route::post('/products/{product}/models/{model}/designs/{design}/images', [ProductController::class, 'uploadDesignGalleryImage'])
+        ->name('products.designs.images');
     Route::post('/products/{product}/models/{model}/designs/{design}/shades/{shade}/{kind}', [ProductController::class, 'uploadShadeImage'])
         ->whereIn('kind', ['swatch', 'gallery'])
         ->name('products.shades.image');
