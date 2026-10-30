@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
+use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductDetailsController;
@@ -55,7 +56,10 @@ Route::post('/resend-otp', [AuthController::class, 'resendOtp'])
     ->middleware(['frontend.origin', 'throttle:5,1'])
     ->name('api.auth.resend-otp');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['frontend.origin', 'throttle:5,1', 'auth:sanctum'])->group(function () {
     Route::get('/auth/me', [AuthController::class, 'me'])->name('api.auth.me');
     Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.auth.logout');
+
+    Route::post('/submit-cart-details', [CheckoutController::class, 'index'])
+        ->name('api.checkout.submit-cart-details');
 });

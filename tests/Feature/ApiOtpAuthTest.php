@@ -16,6 +16,13 @@ class ApiOtpAuthTest extends TestCase
 
     private const FRONTEND_ORIGIN = 'https://example.com';
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config(['app.frontend_origins' => [self::FRONTEND_ORIGIN]]);
+    }
+
     public function test_new_customer_verifies_email_before_completing_registration(): void
     {
         Mail::fake();
@@ -55,21 +62,22 @@ class ApiOtpAuthTest extends TestCase
         $this->assertDatabaseMissing('email_otp_challenges', ['id' => $challenge->id]);
 
         $token = $response->json('access_token');
-        $this->withToken($token)->getJson('/api/auth/me')
+        $this->withToken($token)->withHeader('Origin', self::FRONTEND_ORIGIN)->getJson('/api/auth/me')
             ->assertOk()
             ->assertJsonPath('user.id', $user->id);
 
         $this->app['auth']->forgetGuards();
-        $this->withToken('invalid-token')->postJson('/api/auth/logout')
+        $this->withToken('invalid-token')->withHeader('Origin', self::FRONTEND_ORIGIN)->postJson('/api/auth/logout')
             ->assertUnauthorized();
 
         $this->app['auth']->forgetGuards();
-        $this->withToken($token)->postJson('/api/auth/logout')
+        $this->withToken($token)->withHeader('Origin', self::FRONTEND_ORIGIN)->postJson('/api/auth/logout')
             ->assertOk();
         $this->assertDatabaseCount('personal_access_tokens', 0);
 
         $this->app['auth']->forgetGuards();
-        $this->withToken($token)->getJson('/api/auth/me')->assertUnauthorized();
+        $this->withToken($token)->withHeader('Origin', self::FRONTEND_ORIGIN)
+            ->getJson('/api/auth/me')->assertUnauthorized();
     }
 
     public function test_existing_customer_can_request_and_verify_a_login_otp(): void
@@ -88,7 +96,9 @@ class ApiOtpAuthTest extends TestCase
             ->assertJsonPath('user.id', $user->id)
             ->assertJsonStructure(['access_token', 'token_type', 'user']);
 
-        $this->withToken($response->json('access_token'))->getJson('/api/auth/me')
+        $this->withToken($response->json('access_token'))
+            ->withHeader('Origin', self::FRONTEND_ORIGIN)
+            ->getJson('/api/auth/me')
             ->assertOk()
             ->assertJsonPath('user.email', $user->email);
     }
