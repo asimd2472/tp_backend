@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Mail\BookingDetailsMail;
 use App\Models\CartDetail;
 use App\Models\User;
+use Closure;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class CartDetailsApiTest extends TestCase
@@ -22,6 +25,7 @@ class CartDetailsApiTest extends TestCase
 
     public function test_authenticated_user_can_save_cart_details(): void
     {
+        Mail::fake();
         $user = User::factory()->create();
 
         $payload = [
@@ -58,6 +62,21 @@ class CartDetailsApiTest extends TestCase
         $this->assertSame('Planning', $saved->construction_stage);
         $this->assertSame('700100', $saved->pincode);
         $this->assertSame('gh dggd', $saved->address);
+
+        Mail::assertSent(
+            BookingDetailsMail::class,
+            fn (BookingDetailsMail $mail): bool => $mail->hasTo($user->email)
+                && $mail->bookingNumber === 'TP-000001',
+        );
+        $attachment = Mail::sent(BookingDetailsMail::class)->first()->attachments()[0];
+        $this->assertSame('booking-details-TP-000001.pdf', $attachment->as);
+        $this->assertSame('application/pdf', $attachment->mime);
+
+        $pdfContents = $attachment->attachWith(
+            fn (string $path): string => file_get_contents($path),
+            fn (Closure $data): string => $data(),
+        );
+        $this->assertStringStartsWith('%PDF-', $pdfContents);
     }
 
     public function test_saving_cart_details_requires_authentication(): void
