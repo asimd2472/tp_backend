@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\CheckoutController;
+use App\Http\Controllers\Api\DealerController;
 use App\Http\Controllers\Api\ProductCatalogController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\ProductDetailsController;
@@ -12,6 +13,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/blogs', [BlogController::class, 'index'])
     ->name('api.blogs.index');
+Route::get('/dealers', [DealerController::class, 'index'])
+    ->name('api.dealers.index');
 Route::get('/blog-details/{slug}', [BlogController::class, 'details'])
     ->name('api.blogs.details');
 

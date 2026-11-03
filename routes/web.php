@@ -3,6 +3,8 @@
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\BlogController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DealerController;
+use App\Http\Controllers\Admin\DealerImportController;
 use App\Http\Controllers\Admin\FrenchDoorController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductImportController;
@@ -22,6 +24,9 @@ Route::post('/admin/login', [AdminAuthController::class, 'store'])
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
     Route::resource('roles', RoleController::class)->except(['show']);
+    Route::get('/dealers/import', [DealerImportController::class, 'index'])->name('dealers.import.index');
+    Route::post('/dealers/import', [DealerImportController::class, 'store'])->name('dealers.import.store');
+    Route::resource('dealers', DealerController::class)->except(['show']);
     Route::resource('products', ProductController::class)->except(['show']);
     Route::post('/products/{product}/models/{model}/image', [ProductController::class, 'uploadModelImage'])
         ->name('products.models.image');
