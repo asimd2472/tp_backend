@@ -16,7 +16,7 @@
     <div class="dashboard-layout">
         <aside class="admin-sidebar" id="adminSidebar" aria-labelledby="sidebarBrand">
             <div class="sidebar-head">
-                <a class="brand-lockup" id="sidebarBrand" href="{{ route('admin.dashboard') }}">
+                <a class="brand-lockup" id="sidebarBrand" href="{{ auth()->user()->can('view_dashboard') ? route('admin.dashboard') : url()->current() }}">
                     <span class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></span>
                     <span class="brand-wordmark"><strong>TATA</strong><span>PRAVESH</span></span>
                 </a>
@@ -25,14 +25,19 @@
 
             <div class="sidebar-label">WORKSPACE</div>
             <nav class="sidebar-nav" aria-label="Main navigation">
-                <a class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="8" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="15" width="7" height="6" rx="1.5"></rect></svg>
-                    <span>Overview</span>
-                </a>
-                <a class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}" href="{{ route('admin.roles.index') }}">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 4.5 7v5.6c0 3.8 2.6 6.9 7.5 9.9 4.9-3 7.5-6.1 7.5-9.9V7L12 3.5Zm-1.5 7.8 2.1 2.1 4.2-4.2"></path></svg>
-                    <span>Role management</span>
-                </a>
+                @can('view_dashboard')
+                    <a class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="8" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="15" width="7" height="6" rx="1.5"></rect></svg>
+                        <span>Overview</span>
+                    </a>
+                @endcan
+                @can('manage_roles')
+                    <a class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}" href="{{ route('admin.roles.index') }}">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 4.5 7v5.6c0 3.8 2.6 6.9 7.5 9.9 4.9-3 7.5-6.1 7.5-9.9V7L12 3.5Zm-1.5 7.8 2.1 2.1 4.2-4.2"></path></svg>
+                        <span>Role management</span>
+                    </a>
+                @endcan
+                @if (auth()->user()->can('manage_products') || auth()->user()->can('manage_french_door') || auth()->user()->can('manage_windows'))
                 <div class="sidebar-product-group">
                     <a class="sidebar-link sidebar-product-toggle {{ request()->routeIs('admin.products.*', 'admin.windows.*') ? 'is-active' : '' }}" href="#" aria-expanded="false">
                         <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Zm0 0v10l9 4 9-4V7M12 11v10"></path></svg>
@@ -41,6 +46,7 @@
                     </a>
                     <div class="sidebar-product-menu">
                         <div class="sidebar-product-menu-inner">
+                            @can('manage_products')
                             <div class="sidebar-product-category">
                                 <a class="sidebar-sublink {{ request()->routeIs('admin.products.index') || request()->routeIs('admin.products.french-door.*') ? 'is-active' : '' }}" href="{{ route('admin.products.index') }}">
                                     <span class="sidebar-subnav-dot"></span>
@@ -51,31 +57,51 @@
                                         <span class="sidebar-subnav-dot"></span>
                                         <span>Catalog</span>
                                     </a>
+                                    @can('manage_french_door')
+                                        <a class="sidebar-sublink {{ request()->routeIs('admin.products.french-door.*') ? 'is-active' : '' }}" href="{{ route('admin.products.french-door.index') }}">
+                                            <span class="sidebar-subnav-dot"></span>
+                                            <span>French-door</span>
+                                        </a>
+                                    @endcan
+                                </div>
+                            </div>
+                            @endcan
+                            @can('manage_french_door')
+                                @unless (auth()->user()->can('manage_products'))
                                     <a class="sidebar-sublink {{ request()->routeIs('admin.products.french-door.*') ? 'is-active' : '' }}" href="{{ route('admin.products.french-door.index') }}">
                                         <span class="sidebar-subnav-dot"></span>
                                         <span>French-door</span>
                                     </a>
-                                </div>
-                            </div>
+                                @endunless
+                            @endcan
+                            @can('manage_windows')
                             <a class="sidebar-sublink {{ request()->routeIs('admin.windows.*') ? 'is-active' : '' }}" href="{{ route('admin.windows.index') }}">
                                 <span class="sidebar-subnav-dot"></span>
                                 <span>Window</span>
                             </a>
+                            @endcan
                         </div>
                     </div>
                 </div>
-                <a class="sidebar-link {{ request()->routeIs('admin.blog.*') ? 'is-active' : '' }}" href="{{ route('admin.blog.index') }}">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v14H5A1.5 1.5 0 0 1 3.5 18.5V6A1.5 1.5 0 0 1 5 4.5Z"></path><path d="M7.5 8h9M7.5 11.5h9M7.5 15h5"></path></svg>
-                    <span>Blog</span>
-                </a>
-                <a class="sidebar-link {{ request()->routeIs('admin.dealers.*') ? 'is-active' : '' }}" href="{{ route('admin.dealers.index') }}">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20v-1.5A5.5 5.5 0 0 1 8 13h2a5.5 5.5 0 0 1 5.5 5.5V20M16 4.8a3.5 3.5 0 0 1 0 6.7M17 13.2a5.5 5.5 0 0 1 4.5 5.4V20"></path></svg>
-                    <span>Dealers</span>
-                </a>
-                <a class="sidebar-link" href="{{ route('admin.dashboard') }}#security">
-                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v5.6c0 4.2-2.9 7.5-7 9.4-4.1-1.9-7-5.2-7-9.4V6l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>
-                    <span>Security</span>
-                </a>
+                @endif
+                @can('manage_blog')
+                    <a class="sidebar-link {{ request()->routeIs('admin.blog.*') ? 'is-active' : '' }}" href="{{ route('admin.blog.index') }}">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 4.5h14A1.5 1.5 0 0 1 20.5 6v14H5A1.5 1.5 0 0 1 3.5 18.5V6A1.5 1.5 0 0 1 5 4.5Z"></path><path d="M7.5 8h9M7.5 11.5h9M7.5 15h5"></path></svg>
+                        <span>Blog</span>
+                    </a>
+                @endcan
+                @can('manage_dealers')
+                    <a class="sidebar-link {{ request()->routeIs('admin.dealers.*') ? 'is-active' : '' }}" href="{{ route('admin.dealers.index') }}">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20v-1.5A5.5 5.5 0 0 1 8 13h2a5.5 5.5 0 0 1 5.5 5.5V20M16 4.8a3.5 3.5 0 0 1 0 6.7M17 13.2a5.5 5.5 0 0 1 4.5 5.4V20"></path></svg>
+                        <span>Dealers</span>
+                    </a>
+                @endcan
+                @can('view_dashboard')
+                    <a class="sidebar-link" href="{{ route('admin.dashboard') }}#security">
+                        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m12 3 7 3v5.6c0 4.2-2.9 7.5-7 9.4-4.1-1.9-7-5.2-7-9.4V6l7-3Z"></path><path d="m9 12 2 2 4-4"></path></svg>
+                        <span>Security</span>
+                    </a>
+                @endcan
             </nav>
 
             <div class="sidebar-bottom">

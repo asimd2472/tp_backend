@@ -18,7 +18,11 @@ class AdminAuthController extends Controller
     public function create(): View|RedirectResponse
     {
         if (Auth::check() && Auth::user()->isAdmin()) {
-            return redirect()->route('admin.dashboard');
+            $landingUrl = $this->adminLandingUrl(Auth::user());
+
+            abort_if($landingUrl === null, 403, 'No admin menu permissions have been assigned to this account.');
+
+            return redirect()->to($landingUrl);
         }
 
         return view('admin.login');
@@ -49,6 +53,14 @@ class AdminAuthController extends Controller
             ], 422);
         }
 
+        $landingUrl = $this->adminLandingUrl($user);
+
+        if ($landingUrl === null) {
+            return response()->json([
+                'message' => 'No admin menu permissions have been assigned to this account.',
+            ], 403);
+        }
+
         Auth::login($user, $request->boolean('remember'));
 
         RateLimiter::clear($throttleKey);
@@ -56,8 +68,29 @@ class AdminAuthController extends Controller
 
         return response()->json([
             'message' => 'Signed in successfully.',
-            'redirect' => route('admin.dashboard'),
+            'redirect' => $landingUrl,
         ]);
+    }
+
+    private function adminLandingUrl(User $user): ?string
+    {
+        $menuRoutes = [
+            'view_dashboard' => 'admin.dashboard',
+            'manage_roles' => 'admin.roles.index',
+            'manage_products' => 'admin.products.index',
+            'manage_french_door' => 'admin.products.french-door.index',
+            'manage_windows' => 'admin.windows.index',
+            'manage_blog' => 'admin.blog.index',
+            'manage_dealers' => 'admin.dealers.index',
+        ];
+
+        foreach ($menuRoutes as $permission => $route) {
+            if ($user->can($permission)) {
+                return route($route);
+            }
+        }
+
+        return null;
     }
 
     public function destroy(Request $request): RedirectResponse

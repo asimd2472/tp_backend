@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -76,6 +77,7 @@ class AdminAuthenticationTest extends TestCase
     public function test_user_with_role_can_access_admin_dashboard(): void
     {
         $role = Role::create(['name' => 'super-admin', 'guard_name' => 'web']);
+        $role->givePermissionTo(Permission::findByName('view_dashboard'));
         $admin = User::factory()->create([
             'email' => 'role.admin@example.com',
             'password' => 'a-secure-password',

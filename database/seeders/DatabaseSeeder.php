@@ -19,6 +19,11 @@ class DatabaseSeeder extends Seeder
             'manage_roles',
             'manage_settings',
             'view_dashboard',
+            'manage_products',
+            'manage_french_door',
+            'manage_windows',
+            'manage_blog',
+            'manage_dealers',
         ];
 
         foreach ($permissions as $permission) {

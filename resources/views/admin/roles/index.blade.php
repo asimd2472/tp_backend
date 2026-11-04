@@ -152,7 +152,9 @@
                                     <th scope="col">USER</th>
                                     <th scope="col">EMAIL</th>
                                     <th scope="col">CURRENT ROLES</th>
-                                    <th scope="col">UPDATE ROLES</th>
+                                    @can('manage_users')
+                                        <th scope="col">UPDATE ROLES</th>
+                                    @endcan
                                 </tr>
                             </thead>
                             <tbody>
@@ -172,17 +174,19 @@
                                                 <span class="text-muted">No role assigned</span>
                                             @endforelse
                                         </td>
-                                        <td>
-                                            <form action="{{ route('admin.users.roles.update', $user) }}" method="POST" class="d-flex flex-wrap gap-2 align-items-center assignment-form">
-                                                @csrf
-                                                <select name="roles[]" class="form-select form-select-sm role-select" multiple size="4" aria-label="User roles">
-                                                    @foreach ($roles as $role)
-                                                        <option value="{{ $role->name }}" {{ $user->hasRole($role->name) ? 'selected' : '' }}>{{ $role->name }}</option>
-                                                    @endforeach
-                                                </select>
-                                                <button type="submit" class="btn btn-outline-primary btn-sm">Save</button>
-                                            </form>
-                                        </td>
+                                        @can('manage_users')
+                                            <td>
+                                                <form action="{{ route('admin.users.roles.update', $user) }}" method="POST" class="d-flex flex-wrap gap-2 align-items-center assignment-form">
+                                                    @csrf
+                                                    <select name="roles[]" class="form-select form-select-sm role-select" multiple size="4" aria-label="User roles">
+                                                        @foreach ($roles as $role)
+                                                            <option value="{{ $role->name }}" {{ $user->hasRole($role->name) ? 'selected' : '' }}>{{ $role->name }}</option>
+                                                        @endforeach
+                                                    </select>
+                                                    <button type="submit" class="btn btn-outline-primary btn-sm">Save</button>
+                                                </form>
+                                            </td>
+                                        @endcan
                                     </tr>
                                 @empty
                                     <tr><td colspan="4"><div class="empty-directory"><span class="empty-directory-icon">+</span><strong>No users found</strong><span>New workspace accounts will appear here.</span></div></td></tr>

@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Spatie\Permission\Models\Permission;
 
 /**
  * @extends Factory<User>
@@ -48,6 +49,27 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_admin' => true,
-        ]);
+        ])->afterCreating(function (User $user): void {
+            $permissions = [
+                'manage_users',
+                'manage_roles',
+                'manage_settings',
+                'view_dashboard',
+                'manage_products',
+                'manage_french_door',
+                'manage_windows',
+                'manage_blog',
+                'manage_dealers',
+            ];
+
+            foreach ($permissions as $permission) {
+                Permission::firstOrCreate([
+                    'name' => $permission,
+                    'guard_name' => 'web',
+                ]);
+            }
+
+            $user->givePermissionTo($permissions);
+        });
     }
 }
