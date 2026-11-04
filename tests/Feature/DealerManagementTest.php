@@ -125,4 +125,41 @@ class DealerManagementTest extends TestCase
             ->assertJsonPath('pagination.total', 2)
             ->assertJsonCount(1, 'data');
     }
+
+    public function test_dealer_api_searches_across_all_dealer_fields(): void
+    {
+        $dealer = Dealer::query()->create([
+            'state' => 'Andhra Pradesh',
+            'district' => 'Guntur',
+            'dealer_name' => 'Airavath Interiors',
+            'dealer_address' => 'Amaravathi Road',
+            'contact_person' => 'Pavan',
+            'mobile_number' => '9382518551',
+            'email_id' => 'airavath@example.com',
+        ]);
+        Dealer::query()->create([
+            'state' => 'Telangana',
+            'district' => 'Hyderabad',
+            'dealer_name' => 'Other Dealer',
+            'dealer_address' => 'Other Road',
+            'contact_person' => 'Other Contact',
+            'mobile_number' => '9000000000',
+            'email_id' => 'other@example.com',
+        ]);
+
+        foreach ([
+            'Andhra Pradesh',
+            'Guntur',
+            'Airavath Interiors',
+            'Amaravathi Road',
+            'Pavan',
+            '9382518551',
+            'airavath@example.com',
+        ] as $search) {
+            $this->getJson(route('api.dealers.index', ['search' => $search]))
+                ->assertOk()
+                ->assertJsonPath('pagination.total', 1)
+                ->assertJsonPath('data.0.id', $dealer->id);
+        }
+    }
 }

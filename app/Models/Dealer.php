@@ -37,6 +37,19 @@ class Dealer extends Model
             }
         }
 
+        if (isset($filters['search']) && trim((string) $filters['search']) !== '') {
+            $search = trim((string) $filters['search']);
+            $searchableColumns = array_values($columns);
+
+            $query->where(function (Builder $query) use ($search, $searchableColumns): void {
+                $query->where($searchableColumns[0], 'like', '%'.$search.'%');
+
+                foreach (array_slice($searchableColumns, 1) as $column) {
+                    $query->orWhere($column, 'like', '%'.$search.'%');
+                }
+            });
+        }
+
         return $query;
     }
 

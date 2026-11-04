@@ -19,6 +19,7 @@ class DealerController extends Controller
             'contact_person' => ['sometimes', 'nullable', 'string', 'max:255'],
             'mobile_number' => ['sometimes', 'nullable', 'string', 'max:50'],
             'email_id' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
@@ -42,7 +43,7 @@ class DealerController extends Controller
                 'mobile_number' => $dealer->mobile_number,
                 'email_id' => $dealer->email_id,
                 'image' => $dealer->image,
-                'image_url' => $dealer->image_url,
+                'image_url' => $this->resolveImageUrl($dealer->image_url, 'uploads/default/store.jpg'),
             ])->values(),
             'pagination' => [
                 'current_page' => $dealers->currentPage(),
@@ -55,5 +56,24 @@ class DealerController extends Controller
                 'prev_page_url' => $dealers->previousPageUrl(),
             ],
         ]);
+    }
+
+    protected function resolveImageUrl(?string $path, string $default = 'uploads/default/store.jpg'): string
+    {
+        if (blank($path)) {
+            return asset($default);
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        $normalized = ltrim($path, '/');
+
+        if (str_starts_with($normalized, 'uploads/') || str_starts_with($normalized, 'storage/')) {
+            return asset('/'.$normalized);
+        }
+
+        return asset('uploads/'.$normalized);
     }
 }
