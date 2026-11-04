@@ -12,7 +12,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="{{ asset('css/admin.css') }}" rel="stylesheet">
 </head>
-<body class="dashboard-page role-page">
+<body class="@yield('body_class', 'dashboard-page role-page')">
     <div class="dashboard-layout">
         <aside class="admin-sidebar" id="adminSidebar" aria-labelledby="sidebarBrand">
             <div class="sidebar-head">
@@ -25,11 +25,11 @@
 
             <div class="sidebar-label">WORKSPACE</div>
             <nav class="sidebar-nav" aria-label="Main navigation">
-                <a class="sidebar-link" href="{{ route('admin.dashboard') }}">
+                <a class="sidebar-link {{ request()->routeIs('admin.dashboard') ? 'is-active' : '' }}" href="{{ route('admin.dashboard') }}">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="8" rx="1.5"></rect><rect x="14" y="3" width="7" height="5" rx="1.5"></rect><rect x="14" y="12" width="7" height="9" rx="1.5"></rect><rect x="3" y="15" width="7" height="6" rx="1.5"></rect></svg>
                     <span>Overview</span>
                 </a>
-                <a class="sidebar-link" href="{{ route('admin.roles.index') }}">
+                <a class="sidebar-link {{ request()->routeIs('admin.roles.*') ? 'is-active' : '' }}" href="{{ route('admin.roles.index') }}">
                     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 4.5 7v5.6c0 3.8 2.6 6.9 7.5 9.9 4.9-3 7.5-6.1 7.5-9.9V7L12 3.5Zm-1.5 7.8 2.1 2.1 4.2-4.2"></path></svg>
                     <span>Role management</span>
                 </a>
@@ -111,7 +111,7 @@
                 </div>
             </header>
 
-            <main class="dashboard-content role-page-content">
+            <main id="@yield('content_id')" class="dashboard-content @yield('content_class', 'role-page-content')">
                 @yield('content')
             </main>
         </div>
