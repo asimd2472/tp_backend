@@ -90,6 +90,45 @@ CSV
         ]);
     }
 
+    public function test_import_adds_and_updates_model_content_and_places_price_on_shade_or_shade_free_design(): void
+    {
+        $file = $this->temporaryCsvPath();
+        $spreadsheet = <<<'CSV'
+product name,Models,Designs,Shades,Sizes,Description,Accessories,Starting Price
+Import Doors,Classic,E01,Oak,"900x2000",Door description,Door accessories,10000
+Import Doors,Classic,E02,,"900x2100",Door description,Door accessories,15000
+CSV;
+        file_put_contents($file, $spreadsheet);
+
+        try {
+            $importer = new SpreadsheetImporter;
+            $importer->importFromFile($file);
+
+            $model = Product::query()->where('name', 'Import Doors')->firstOrFail()->models()->firstOrFail();
+            $shade = $model->designs()->where('name', 'E01')->firstOrFail()->shades()->firstOrFail();
+            $design = $model->designs()->where('name', 'E02')->firstOrFail();
+
+            $this->assertSame('Door description', $model->description);
+            $this->assertSame('Door accessories', $model->accessories);
+            $this->assertSame('10000.00', $shade->starting_price);
+            $this->assertSame('15000.00', $design->starting_price);
+
+            file_put_contents($file, str_replace(
+                ['Door description', 'Door accessories', ',10000', ',15000'],
+                ['Updated door description', 'Updated accessories', ',11000', ',16000'],
+                $spreadsheet,
+            ));
+            $importer->importFromFile($file);
+
+            $this->assertSame('Updated door description', $model->fresh()->description);
+            $this->assertSame('Updated accessories', $model->fresh()->accessories);
+            $this->assertSame('11000.00', $shade->fresh()->starting_price);
+            $this->assertSame('16000.00', $design->fresh()->starting_price);
+        } finally {
+            unlink($file);
+        }
+    }
+
     private function temporaryCsvPath(): string
     {
         $temporaryFile = tempnam(sys_get_temp_dir(), 'products');

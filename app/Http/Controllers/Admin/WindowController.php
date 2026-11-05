@@ -224,11 +224,13 @@ class WindowController extends Controller
             'models.*.starting_price' => ['nullable', 'numeric', 'min:0'],
             'models.*.short_description' => ['nullable', 'string', 'max:500'],
             'models.*.description' => ['nullable', 'string'],
+            'models.*.accessories' => ['nullable', 'string'],
             'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.shades' => ['nullable', 'array'],
             'models.*.shades.*.id' => ['nullable', 'integer'],
             'models.*.shades.*.name' => ['nullable', 'string', 'max:255'],
             'models.*.shades.*.color_hex' => ['nullable', 'regex:/^#[0-9A-Fa-f]{6}$/'],
+            'models.*.shades.*.starting_price' => ['nullable', 'numeric', 'min:0'],
             'models.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.shades.*.images' => ['nullable', 'array'],
             'models.*.shades.*.images.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
@@ -275,6 +277,9 @@ class WindowController extends Controller
                 'is_active' => (bool) ($modelData['is_active'] ?? true),
                 'is_default' => (bool) ($modelData['is_default'] ?? false),
             ]);
+            if (array_key_exists('accessories', $modelData) || ! $model->exists) {
+                $model->accessories = $modelData['accessories'] ?? null;
+            }
 
             if (($modelData['main_image'] ?? null) instanceof UploadedFile) {
                 if ($model->main_image) {
@@ -302,6 +307,9 @@ class WindowController extends Controller
                     'color_hex' => $shadeData['color_hex'] ?? null,
                     'sort_order' => $shadeIndex,
                 ]);
+                if (array_key_exists('starting_price', $shadeData) || ! $shade->exists) {
+                    $shade->starting_price = $shadeData['starting_price'] ?? null;
+                }
 
                 if (($shadeData['swatch'] ?? null) instanceof UploadedFile) {
                     if ($shade->swatch_image) {
@@ -340,7 +348,7 @@ class WindowController extends Controller
                 continue;
             }
 
-            if (preg_match('/^(\\d+)\\s*[xX]\\s*(\\d+)$/', $value, $matches) !== 1) {
+            if (preg_match('/^(\\d+)\\s*[xX×]\\s*(\\d+)$/', $value, $matches) !== 1) {
                 throw ValidationException::withMessages(['sizes' => 'Enter each window size as width x height, for example 914x1219.']);
             }
 

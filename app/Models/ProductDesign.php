@@ -11,11 +11,19 @@ class ProductDesign extends Model
 {
     use HasFactory;
 
+    protected function casts(): array
+    {
+        return [
+            'starting_price' => 'decimal:2',
+        ];
+    }
+
     protected $fillable = [
         'product_id',
         'product_model_id',
         'name',
         'code',
+        'starting_price',
         'thumbnail_image',
         'sort_order',
     ];

@@ -215,6 +215,16 @@
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-model" disabled title="Existing models are preserved on update">Remove</button>
                                 </div>
                             </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Description</label>
+                                    <textarea name="models[{{ $loop->index }}][description]" class="form-control" rows="2">{{ old('models.'.$loop->index.'.description', $model->description) }}</textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Accessories</label>
+                                    <textarea name="models[{{ $loop->index }}][accessories]" class="form-control" rows="2">{{ old('models.'.$loop->index.'.accessories', $model->accessories) }}</textarea>
+                                </div>
+                            </div>
 
                             <div class="design-list">
                                 @forelse ($model->designs as $design)
@@ -270,6 +280,10 @@
                                             </div>
 
                                             @if ($design->shades->isEmpty())
+                                                <div class="mt-3" data-design-price-field>
+                                                    <label class="form-label">Design starting price (used when this design has no shades)</label>
+                                                    <input type="number" min="0" step="0.01" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][starting_price]" class="form-control" value="{{ old('models.'.$loop->parent->index.'.designs.'.$loop->index.'.starting_price', $design->starting_price) }}">
+                                                </div>
                                                 <div class="mt-3" data-design-size-field>
                                                     <label class="form-label">Design sizes (width x height in mm)</label>
                                                     <input type="text" name="models[{{ $loop->parent->index }}][designs][{{ $loop->index }}][sizes]" class="form-control" value="{{ old('models.'.$loop->parent->index.'.designs.'.$loop->index.'.sizes', $design->sizes->map(fn ($size) => $size->width_mm.'x'.$size->height_mm)->implode(', ')) }}" placeholder="900x2050, 900x2100">
@@ -322,6 +336,10 @@
                                                                         <div class="small text-muted image-upload-status" aria-live="polite"></div>
                                                                     @endif
                                                                 </div>
+                                                            </div>
+                                                            <div class="col-md-12">
+                                                                <label class="form-label">Starting price</label>
+                                                                <input type="number" min="0" step="0.01" name="models[{{ $loop->parent->parent->index }}][designs][{{ $loop->parent->index }}][shades][{{ $loop->index }}][starting_price]" class="form-control" value="{{ old('models.'.$loop->parent->parent->index.'.designs.'.$loop->parent->index.'.shades.'.$loop->index.'.starting_price', $shade->starting_price) }}">
                                                             </div>
                                                             <div class="col-md-1 text-end">
                                                                 <button type="button" class="btn btn-outline-danger btn-sm remove-shade" disabled title="Existing shades are preserved on update">Remove</button>
@@ -550,6 +568,10 @@
                                     <input type="file" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple>
                                 </div>
                             </div>
+                            <div class="col-md-12">
+                                <label class="form-label">Starting price</label>
+                                <input type="number" min="0" step="0.01" name="models[${modelIndex}][designs][${designIndex}][shades][${count}][starting_price]" class="form-control">
+                            </div>
                             <div class="col-md-1 text-end">
                                 <button type="button" class="btn btn-outline-danger btn-sm remove-shade">Remove</button>
                             </div>
@@ -578,15 +600,17 @@
             }
 
             function syncDesignSizeField(designBlock) {
-                const field = designBlock.querySelector('[data-design-size-field]');
-                if (!field) {
-                    return;
-                }
-
                 const hasShades = designBlock.querySelectorAll('.shade-block').length > 0;
-                field.classList.toggle('d-none', hasShades);
-                field.querySelectorAll('input').forEach(input => {
-                    input.disabled = hasShades;
+                ['[data-design-size-field]', '[data-design-price-field]'].forEach(selector => {
+                    const field = designBlock.querySelector(selector);
+                    if (!field) {
+                        return;
+                    }
+
+                    field.classList.toggle('d-none', hasShades);
+                    field.querySelectorAll('input').forEach(input => {
+                        input.disabled = hasShades;
+                    });
                 });
             }
 
@@ -627,6 +651,10 @@
                                     <div class="image-upload-previews d-flex flex-wrap gap-2 mb-2"></div>
                                     <input type="file" name="models[${modelIndex}][designs][${count}][images][0][file][]" class="form-control image-preview-input" accept="image/jpeg,image/png,image/webp" multiple>
                                 </div>
+                            </div>
+                            <div class="mt-3" data-design-price-field>
+                                <label class="form-label">Design starting price (used when this design has no shades)</label>
+                                <input type="number" min="0" step="0.01" name="models[${modelIndex}][designs][${count}][starting_price]" class="form-control">
                             </div>
                             <div class="mt-3" data-design-size-field>
                                 <label class="form-label">Design sizes (width x height in mm)</label>
@@ -671,6 +699,16 @@
                                 </div>
                                 <div class="col-md-2 text-end">
                                     <button type="button" class="btn btn-outline-danger btn-sm remove-model">Remove</button>
+                                </div>
+                            </div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Description</label>
+                                    <textarea name="models[${count}][description]" class="form-control" rows="2"></textarea>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Accessories</label>
+                                    <textarea name="models[${count}][accessories]" class="form-control" rows="2"></textarea>
                                 </div>
                             </div>
                             <div class="design-list"></div>

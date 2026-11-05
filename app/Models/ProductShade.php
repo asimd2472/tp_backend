@@ -11,10 +11,18 @@ class ProductShade extends Model
 {
     use HasFactory;
 
+    protected function casts(): array
+    {
+        return [
+            'starting_price' => 'decimal:2',
+        ];
+    }
+
     protected $fillable = [
         'product_design_id',
         'name',
         'color_hex',
+        'starting_price',
         'swatch_image',
         'sort_order',
     ];

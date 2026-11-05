@@ -85,9 +85,73 @@ class ProductFormTest extends TestCase
         $this->assertSame($payload['specifications'], $product->specifications);
         $this->assertSame('4.5', $product->rating);
         $this->assertSame($payload['review'], $product->review);
+    }
+
+    public function test_admin_can_create_and_update_model_accessories_and_design_or_shade_prices(): void
+    {
+        $this->actingAs(User::factory()->admin()->create());
+
+        $this->post(route('admin.products.store'), [
+            'name' => 'Variants with prices',
+            'models' => [
+                [
+                    'name' => 'Model One',
+                    'description' => 'Model description',
+                    'accessories' => 'Hinges and lock',
+                    'designs' => [
+                        ['name' => 'Shade free', 'starting_price' => '25000'],
+                        [
+                            'name' => 'With shades',
+                            'shades' => [
+                                ['name' => 'Oak', 'starting_price' => '30000'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ])->assertRedirect(route('admin.products.index'));
+
+        $product = Product::query()->where('name', 'Variants with prices')->firstOrFail();
+        $model = $product->models()->firstOrFail();
+        $this->assertSame('Model description', $model->description);
+        $this->assertSame('Hinges and lock', $model->accessories);
+        $this->assertSame('25000.00', $model->designs()->where('name', 'Shade free')->firstOrFail()->starting_price);
+        $shade = $model->designs()->where('name', 'With shades')->firstOrFail()->shades()->firstOrFail();
+        $this->assertSame('30000.00', $shade->starting_price);
 
         $this->put(route('admin.products.update', $product), [
-            'name' => $payload['name'],
+            'name' => $product->name,
+            'models' => [
+                [
+                    'id' => $model->id,
+                    'name' => $model->name,
+                    'description' => 'Updated description',
+                    'accessories' => 'Updated accessories',
+                    'designs' => [
+                        [
+                            'id' => $model->designs()->where('name', 'Shade free')->firstOrFail()->id,
+                            'name' => 'Shade free',
+                            'starting_price' => '26000',
+                        ],
+                        [
+                            'id' => $shade->design()->firstOrFail()->id,
+                            'name' => 'With shades',
+                            'shades' => [
+                                ['id' => $shade->id, 'name' => 'Oak', 'starting_price' => '31000'],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('Updated description', $model->fresh()->description);
+        $this->assertSame('Updated accessories', $model->fresh()->accessories);
+        $this->assertSame('26000.00', $model->designs()->where('name', 'Shade free')->firstOrFail()->starting_price);
+        $this->assertSame('31000.00', $shade->fresh()->starting_price);
+
+        $this->put(route('admin.products.update', $product), [
+            'name' => 'Variants with prices',
             'faqs' => [[
                 'question' => 'Can it be customized?',
                 'answer' => 'Yes, customization is available.',

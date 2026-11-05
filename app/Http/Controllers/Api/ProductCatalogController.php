@@ -146,6 +146,7 @@ class ProductCatalogController extends Controller
                     'id' => $shade->id,
                     'name' => $shade->name,
                     'color' => $shade->color_hex,
+                    'starting_price' => $shade->starting_price === null ? null : (float) $shade->starting_price,
                     'swatch_url' => $shade->swatch_url,
                     'primary_image_url' => $primary,
                     'gallery' => $images,
@@ -166,7 +167,9 @@ class ProductCatalogController extends Controller
                 'primary_image_url' => $primary['url'] ?? ($gallery->first()['url'] ?? null),
                 'gallery' => $gallery,
                 'shades' => $shades,
-                ...($shades->isEmpty() ? ['sizes' => $design->sizes->map(fn ($size) => [
+                ...($shades->isEmpty() ? [
+                    'starting_price' => $design->starting_price === null ? null : (float) $design->starting_price,
+                    'sizes' => $design->sizes->map(fn ($size) => [
                     'id' => $size->id,
                     'width_mm' => (int) $size->width_mm,
                     'height_mm' => (int) $size->height_mm,
@@ -196,6 +199,7 @@ class ProductCatalogController extends Controller
                 'slug' => $model->slug,
                 'short_description' => $model->short_description,
                 'description' => $model->description,
+                'accessories' => $model->accessories,
                 'starting_price' => (float) $model->starting_price,
                 'is_premium' => (bool) $model->is_premium,
                 'is_active' => (bool) $model->is_active,
@@ -295,6 +299,7 @@ class ProductCatalogController extends Controller
                     'id' => $shade->id,
                     'name' => $shade->name,
                     'color' => $shade->color_hex,
+                    'starting_price' => $shade->starting_price === null ? null : (float) $shade->starting_price,
                     'swatch_url' => $this->resolveImageUrl($shade->swatch_image, 'uploads/default/model.webp'),
                     'primary_image_url' => $defaultImage,
                     'gallery' => $gallery,
@@ -315,7 +320,9 @@ class ProductCatalogController extends Controller
                 'primary_image_url' => $primary['url'] ?? ($gallery->first()['url'] ?? null),
                 'gallery' => $gallery,
                 'shades' => $shades,
-                ...($shades->isEmpty() ? ['sizes' => $design->sizes->map(fn ($size) => [
+                ...($shades->isEmpty() ? [
+                    'starting_price' => $design->starting_price === null ? null : (float) $design->starting_price,
+                    'sizes' => $design->sizes->map(fn ($size) => [
                     'id' => $size->id,
                     'width_mm' => (int) $size->width_mm,
                     'height_mm' => (int) $size->height_mm,
@@ -359,6 +366,7 @@ class ProductCatalogController extends Controller
                 'slug' => $model->slug,
                 'short_description' => $model->short_description,
                 'description' => $model->description,
+                'accessories' => $model->accessories,
                 'starting_price' => (float) $model->starting_price,
                 'is_premium' => (bool) $model->is_premium,
                 'is_active' => (bool) $model->is_active,

@@ -38,6 +38,10 @@ class ProductImportTest extends TestCase
         $this->assertDatabaseHas('product_shades', [
             'name' => 'Sun Teak',
             'color_hex' => '#C58A45',
+            'starting_price' => 39000,
         ]);
+        $model = \App\Models\ProductModel::query()->where('name', 'Interio Basic')->firstOrFail();
+        $this->assertSame('Internal door, 100 mm frame, 46 mm thick shutter', $model->description);
+        $this->assertSame('SS Tower Bolt, SS Hinges, Bump Ons, Shims, Hole Caps, Anchor Bolt, Mortise Lever Lock', $model->accessories);
     }
 }

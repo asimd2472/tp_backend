@@ -59,12 +59,16 @@ class ProductController extends Controller
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
             'models.*.is_default' => ['nullable', 'boolean'],
+            'models.*.description' => ['nullable', 'string'],
+            'models.*.accessories' => ['nullable', 'string'],
             'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.starting_price' => ['nullable', 'numeric', 'min:0'],
             'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.sizes' => ['nullable', 'string', 'max:10000'],
             'models.*.designs.*.images.*.file' => ['nullable', 'array'],
             'models.*.designs.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.shades.*.starting_price' => ['nullable', 'numeric', 'min:0'],
             'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
             'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
         ]);
@@ -140,12 +144,16 @@ class ProductController extends Controller
             'models' => ['nullable', 'array'],
             'designs' => ['nullable', 'array'],
             'models.*.is_default' => ['nullable', 'boolean'],
+            'models.*.description' => ['nullable', 'string'],
+            'models.*.accessories' => ['nullable', 'string'],
             'models.*.main_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.starting_price' => ['nullable', 'numeric', 'min:0'],
             'models.*.designs.*.thumbnail' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.sizes' => ['nullable', 'string', 'max:10000'],
             'models.*.designs.*.images.*.file' => ['nullable', 'array'],
             'models.*.designs.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
             'models.*.designs.*.shades.*.swatch' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
+            'models.*.designs.*.shades.*.starting_price' => ['nullable', 'numeric', 'min:0'],
             'models.*.designs.*.shades.*.images.*.file' => ['nullable', 'array'],
             'models.*.designs.*.shades.*.images.*.file.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:20480'],
         ]);
@@ -383,6 +391,7 @@ class ProductController extends Controller
             foreach ([
                 'short_description' => null,
                 'description' => null,
+                'accessories' => null,
                 'starting_price' => 0,
                 'is_premium' => false,
                 'is_active' => true,
@@ -435,6 +444,9 @@ class ProductController extends Controller
             ]);
             if (array_key_exists('code', $designData) || ! $design->exists) {
                 $design->code = $designData['code'] ?? null;
+            }
+            if (array_key_exists('starting_price', $designData) || ! $design->exists) {
+                $design->starting_price = $designData['starting_price'] ?? null;
             }
 
             if (($designData['thumbnail'] ?? null) instanceof UploadedFile) {
@@ -503,7 +515,7 @@ class ProductController extends Controller
                 continue;
             }
 
-            if (preg_match('/^(\\d+)\\s*[xX]\\s*(\\d+)$/', $value, $matches) !== 1) {
+            if (preg_match('/^(\\d+)\\s*[xX×]\\s*(\\d+)$/', $value, $matches) !== 1) {
                 throw ValidationException::withMessages([
                     'sizes' => 'Enter each design size as width x height, for example 900x2050.',
                 ]);
@@ -549,6 +561,9 @@ class ProductController extends Controller
             ]);
             if (array_key_exists('color_hex', $shadeData) || ! $shade->exists) {
                 $shade->color_hex = $shadeData['color_hex'] ?? null;
+            }
+            if (array_key_exists('starting_price', $shadeData) || ! $shade->exists) {
+                $shade->starting_price = $shadeData['starting_price'] ?? null;
             }
 
             if (($shadeData['swatch'] ?? null) instanceof UploadedFile) {

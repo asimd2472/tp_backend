@@ -195,6 +195,41 @@ class ProductCatalogApiTest extends TestCase
             ->assertJsonPath('defaults.size_id', $size->id);
     }
 
+    public function test_product_details_returns_model_accessories_and_prices_at_the_variant_level(): void
+    {
+        $product = Product::create(['name' => 'Priced Doors', 'slug' => 'priced-doors']);
+        $model = $product->models()->create([
+            'name' => 'Default Model',
+            'slug' => 'priced-doors-default',
+            'description' => 'Door model description',
+            'accessories' => 'Hinges and lock',
+            'is_default' => true,
+        ]);
+        $pricedDesign = $model->designs()->create([
+            'product_id' => $product->id,
+            'name' => 'No shade',
+            'starting_price' => 24000,
+        ]);
+        $shadeDesign = $model->designs()->create([
+            'product_id' => $product->id,
+            'name' => 'Has shades',
+        ]);
+        $shade = $shadeDesign->shades()->create([
+            'name' => 'Oak',
+            'starting_price' => 28000,
+        ]);
+
+        $this->getJson(route('api.product-details', ['product_slug' => $product->slug]))
+            ->assertOk()
+            ->assertJsonPath('model.description', 'Door model description')
+            ->assertJsonPath('model.accessories', 'Hinges and lock')
+            ->assertJsonPath('designs.0.starting_price', 24000)
+            ->assertJsonPath('designs.1.shades.0.id', $shade->id)
+            ->assertJsonPath('designs.1.shades.0.starting_price', 28000);
+
+        $this->assertSame('No shade', $pricedDesign->fresh()->name);
+    }
+
     public function test_it_requires_a_product_slug_for_product_details(): void
     {
         $this->getJson('/api/product-details?model_id=25')

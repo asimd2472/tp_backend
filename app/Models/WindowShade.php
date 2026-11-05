@@ -8,10 +8,18 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WindowShade extends Model
 {
+    protected function casts(): array
+    {
+        return [
+            'starting_price' => 'decimal:2',
+        ];
+    }
+
     protected $fillable = [
         'window_model_id',
         'name',
         'color_hex',
+        'starting_price',
         'swatch_image',
         'sort_order',
     ];

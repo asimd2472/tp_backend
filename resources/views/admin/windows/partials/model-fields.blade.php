@@ -31,6 +31,10 @@
             <label class="form-label">Description</label>
             <textarea name="models[{{ $modelIndex }}][description]" class="form-control" rows="2">{{ old('models.'.$modelIndex.'.description', $model?->description ?? '') }}</textarea>
         </div>
+        <div class="col-md-6">
+            <label class="form-label">Accessories</label>
+            <textarea name="models[{{ $modelIndex }}][accessories]" class="form-control" rows="2">{{ old('models.'.$modelIndex.'.accessories', $model?->accessories ?? '') }}</textarea>
+        </div>
         <div class="col-12 d-flex gap-4">
             <div class="form-check">
                 <input type="hidden" name="models[{{ $modelIndex }}][is_default]" value="0">

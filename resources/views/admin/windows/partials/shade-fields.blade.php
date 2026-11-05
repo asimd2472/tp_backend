@@ -12,6 +12,10 @@
             <input type="text" name="models[{{ $modelIndex }}][shades][{{ $shadeIndex }}][color_hex]" class="form-control" placeholder="#C58A45" value="{{ old('models.'.$modelIndex.'.shades.'.$shadeIndex.'.color_hex', $shade?->color_hex ?? '') }}">
         </div>
         <div class="col-md-3">
+            <label class="form-label">Starting price</label>
+            <input type="number" min="0" step="0.01" name="models[{{ $modelIndex }}][shades][{{ $shadeIndex }}][starting_price]" class="form-control" value="{{ old('models.'.$modelIndex.'.shades.'.$shadeIndex.'.starting_price', $shade?->starting_price ?? '') }}">
+        </div>
+        <div class="col-md-3">
             <label class="form-label">Swatch image</label>
             <div class="image-upload-field">
                 @if ($shade?->swatch_image)

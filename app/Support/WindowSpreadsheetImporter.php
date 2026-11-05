@@ -39,6 +39,10 @@ class WindowSpreadsheetImporter
             $model = $values['models'] ?? $values['model'] ?? '';
             $shade = $values['shades'] ?? $values['shade'] ?? '';
             $sizes = $values['sizes'] ?? $values['size'] ?? '';
+            $startingPrice = $values['startingprice'] ?? '';
+            if ($startingPrice !== '' && (! is_numeric($startingPrice) || (float) $startingPrice < 0)) {
+                $errors[] = 'Invalid starting price on row '.($index + 2).': '.$startingPrice;
+            }
             $parsedSizes = [];
 
             foreach (preg_split('/[,;|\\r\\n]+/', $sizes) ?: [] as $size) {
@@ -47,7 +51,7 @@ class WindowSpreadsheetImporter
                     continue;
                 }
 
-                if (preg_match('/^(\\d+)\\s*[xX]\\s*(\\d+)$/', $size, $matches) !== 1) {
+                if (preg_match('/^(\\d+)\\s*[xX×]\\s*(\\d+)$/', $size, $matches) !== 1) {
                     $errors[] = 'Invalid size value on row '.($index + 2).': '.$size;
 
                     continue;
@@ -69,6 +73,9 @@ class WindowSpreadsheetImporter
                 'category' => $values['category'] ?? $values['categories'] ?? $values['productcategory'] ?? null,
                 'model' => $model !== '' ? $model : 'Default',
                 'shade' => $shade,
+                'description' => $values['description'] ?? '',
+                'accessories' => $values['accessories'] ?? '',
+                'starting_price' => $startingPrice === '' ? null : (float) $startingPrice,
                 'sizes' => $parsedSizes,
                 'row' => $index + 2,
             ];
@@ -109,22 +116,36 @@ class WindowSpreadsheetImporter
                     $model = $product->models()->firstOrCreate(['name' => $row['model']], [
                         'slug' => $this->uniqueSlug($row['product'].' '.$row['model'], WindowModel::class),
                         'starting_price' => 0,
+                        'description' => $row['description'] !== '' ? $row['description'] : null,
+                        'accessories' => $row['accessories'] !== '' ? $row['accessories'] : null,
                         'is_active' => true,
                     ]);
                     $modelCache[$modelKey] = $model;
                     $counts['models'] += (int) $model->wasRecentlyCreated;
                 }
 
+                $model = $modelCache[$modelKey];
+                $modelChanged = false;
+                foreach (['description', 'accessories'] as $attribute) {
+                    if ($row[$attribute] !== '' && $model->{$attribute} !== $row[$attribute]) {
+                        $model->{$attribute} = $row[$attribute];
+                        $modelChanged = true;
+                    }
+                }
+                if ($modelChanged) {
+                    $model->save();
+                }
+
                 if ($row['shade'] === '') {
                     continue;
                 }
 
-                $model = $modelCache[$modelKey];
                 $shadeKey = $model->getKey().':'.mb_strtolower($row['shade']);
                 if (! isset($shadeCache[$shadeKey])) {
                     $color = $this->resolveShadeColor($row['shade'], $shadeColors);
                     $shade = $model->shades()->firstOrCreate(['name' => $row['shade']], [
                         'color_hex' => $color,
+                        'starting_price' => $row['starting_price'],
                         'sort_order' => 0,
                     ]);
                     if ($shade->color_hex !== $color) {
@@ -135,6 +156,11 @@ class WindowSpreadsheetImporter
                 }
 
                 $shade = $shadeCache[$shadeKey];
+                if ($row['starting_price'] !== null
+                    && ($shade->starting_price === null || (float) $shade->starting_price !== $row['starting_price'])) {
+                    $shade->starting_price = $row['starting_price'];
+                    $shade->save();
+                }
                 foreach ($row['sizes'] as [$width, $height]) {
                     $size = $shade->sizes()->firstOrCreate([
                         'width_mm' => $width,

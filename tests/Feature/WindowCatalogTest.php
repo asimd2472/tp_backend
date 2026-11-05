@@ -38,7 +38,11 @@ class WindowCatalogTest extends TestCase
         $this->assertDatabaseHas('window_shades', [
             'name' => 'Sun Teak',
             'color_hex' => '#C58A45',
+            'starting_price' => 50000,
         ]);
+        $model = \App\Models\WindowModel::query()->where('name', 'Vista')->firstOrFail();
+        $this->assertSame('Swing & slide, up to 95% opening, deco frame + grill', $model->description);
+        $this->assertSame('Clear Float Glass, SS Hinges, Gas Spring, Shims, Hanging Rollers, Brass Handles, Brass Tower Bolts with SS Plates, Decorative Frame, Safety Grill', $model->accessories);
         $sunTeak = WindowShade::query()->where('name', 'Sun Teak')->firstOrFail();
         $this->assertSame(11, $sunTeak->sizes()->count());
         $this->assertDatabaseCount('products', 0);
@@ -87,6 +91,7 @@ class WindowCatalogTest extends TestCase
                         [
                             'name' => 'Sun Teak',
                             'color_hex' => '#C58A45',
+                            'starting_price' => '12500',
                             'sizes' => '914x1219, 914x1524',
                         ],
                     ],
@@ -103,6 +108,10 @@ class WindowCatalogTest extends TestCase
         $this->assertDatabaseHas('window_sizes', [
             'width_mm' => 914,
             'height_mm' => 1524,
+        ]);
+        $this->assertDatabaseHas('window_shades', [
+            'name' => 'Sun Teak',
+            'starting_price' => 12500,
         ]);
         $this->assertDatabaseCount('products', 0);
         $this->assertDatabaseCount('product_models', 0);
@@ -139,6 +148,7 @@ class WindowCatalogTest extends TestCase
                             'id' => $shade->id,
                             'name' => 'Lava Teak',
                             'color_hex' => '#C58A45',
+                            'starting_price' => '14000',
                             'sizes' => '1219x1830',
                         ],
                     ],
@@ -158,6 +168,7 @@ class WindowCatalogTest extends TestCase
         $this->assertDatabaseHas('window_shades', [
             'id' => $shade->id,
             'name' => 'Lava Teak',
+            'starting_price' => 14000,
         ]);
         $this->assertDatabaseMissing('window_sizes', [
             'window_shade_id' => $shade->id,
@@ -237,12 +248,15 @@ class WindowCatalogTest extends TestCase
         $model = $window->models()->create([
             'name' => 'Vista',
             'slug' => 'awning-window-vista',
+            'description' => 'Swing and slide window',
+            'accessories' => 'Glass, hinges, and handles',
             'is_active' => true,
             'is_default' => true,
         ]);
         $shade = $model->shades()->create([
             'name' => 'Sun Teak',
             'color_hex' => '#C58A45',
+            'starting_price' => 32000,
         ]);
         $shade->sizes()->create(['width_mm' => 914, 'height_mm' => 1219]);
 
@@ -256,8 +270,11 @@ class WindowCatalogTest extends TestCase
             ->assertOk()
             ->assertJsonPath('product.slug', $window->slug)
             ->assertJsonPath('model.id', $model->id)
+            ->assertJsonPath('model.description', 'Swing and slide window')
+            ->assertJsonPath('model.accessories', 'Glass, hinges, and handles')
             ->assertJsonPath('designs', [])
             ->assertJsonPath('shades.0.id', $shade->id)
+            ->assertJsonPath('shades.0.starting_price', 32000)
             ->assertJsonPath('shades.0.sizes.0.width_mm', 914)
             ->assertJsonPath('defaults.design_id', null)
             ->assertJsonPath('defaults.shade_id', $shade->id)
@@ -280,6 +297,43 @@ class WindowCatalogTest extends TestCase
             ->assertOk()
             ->assertJsonPath('window.slug', $window->slug)
             ->assertJsonMissingPath('designs');
+    }
+
+    public function test_window_import_updates_model_content_and_shade_price(): void
+    {
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'windows');
+        $file = $temporaryFile.'.csv';
+        rename($temporaryFile, $file);
+        $spreadsheet = <<<'CSV'
+Product Name,Models,Shades,Sizes,Description,Accessories,Starting Price
+Import Window,Vista,Oak,900x1200,Window description,Glass and handles,32000
+CSV;
+        file_put_contents($file, $spreadsheet);
+
+        try {
+            $importer = app(WindowSpreadsheetImporter::class);
+            $result = $importer->importFromFile($file);
+            $this->assertSame([], $result['errors']);
+            $model = WindowProduct::query()->where('name', 'Import Window')->firstOrFail()->models()->firstOrFail();
+            $shade = $model->shades()->firstOrFail();
+
+            $this->assertSame('Window description', $model->description);
+            $this->assertSame('Glass and handles', $model->accessories);
+            $this->assertSame('32000.00', $shade->starting_price);
+
+            file_put_contents($file, str_replace(
+                ['Window description', 'Glass and handles', '32000'],
+                ['Updated window description', 'Updated accessories', '34000'],
+                $spreadsheet,
+            ));
+            $importer->importFromFile($file);
+
+            $this->assertSame('Updated window description', $model->fresh()->description);
+            $this->assertSame('Updated accessories', $model->fresh()->accessories);
+            $this->assertSame('34000.00', $shade->fresh()->starting_price);
+        } finally {
+            unlink($file);
+        }
     }
 
     public function test_product_details_rejects_requests_that_select_both_catalogs(): void

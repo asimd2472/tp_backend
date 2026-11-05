@@ -19,6 +19,7 @@ class ProductModel extends Model
         'slug',
         'short_description',
         'description',
+        'accessories',
         'starting_price',
         'is_premium',
         'is_active',

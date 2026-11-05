@@ -75,11 +75,33 @@ class SpreadsheetImporter
                             'slug' => $this->buildModelSlug($productName, $modelName),
                             'starting_price' => 0,
                             'description' => null,
+                            'accessories' => null,
                             'is_active' => true,
                         ]);
                     }
 
                     $model = $productCache[$modelKey];
+                    $modelChanged = false;
+                    foreach (['description', 'accessories'] as $attribute) {
+                        $value = trim((string) ($normalized[$attribute] ?? ''));
+                        if ($value !== '' && $model->{$attribute} !== $value) {
+                            $model->{$attribute} = $value;
+                            $modelChanged = true;
+                        }
+                    }
+                    if ($modelChanged) {
+                        $model->save();
+                    }
+
+                    $priceValue = trim((string) ($normalized['starting_price'] ?? ''));
+                    $startingPrice = null;
+                    if ($priceValue !== '') {
+                        if (! is_numeric($priceValue) || (float) $priceValue < 0) {
+                            $errors[] = 'Invalid starting price on row '.($globalIndex + 2).': '.$priceValue;
+                        } else {
+                            $startingPrice = (float) $priceValue;
+                        }
+                    }
 
                     $designName = trim((string) ($normalized['design'] ?? ''));
                     if ($designName !== '') {
@@ -91,6 +113,7 @@ class SpreadsheetImporter
                                 'product_id' => $product->id,
                                 'product_model_id' => $model->id,
                                 'code' => null,
+                                'starting_price' => null,
                                 'sort_order' => 0,
                             ]);
                         }
@@ -107,6 +130,7 @@ class SpreadsheetImporter
                                     'name' => $shadeName,
                                 ], [
                                     'color_hex' => $colorHex,
+                                    'starting_price' => null,
                                     'sort_order' => 0,
                                 ]);
                                 if ($shade->color_hex !== $colorHex) {
@@ -116,8 +140,17 @@ class SpreadsheetImporter
                                 $shadeCache[$shadeKey] = $shade;
                             }
                             $shade = $shadeCache[$shadeKey];
+                            if ($startingPrice !== null
+                                && ($shade->starting_price === null || (float) $shade->starting_price !== $startingPrice)) {
+                                $shade->starting_price = $startingPrice;
+                                $shade->save();
+                            }
                             $shades++;
                             $sizeOwner = $shade;
+                        } elseif ($startingPrice !== null
+                            && ($design->starting_price === null || (float) $design->starting_price !== $startingPrice)) {
+                            $design->starting_price = $startingPrice;
+                            $design->save();
                         }
 
                         $sizeString = trim((string) ($normalized['size'] ?? ''));
@@ -129,7 +162,7 @@ class SpreadsheetImporter
                                 continue;
                             }
 
-                            $pair = preg_split('/[xX]/', $clean, 2);
+                            $pair = preg_split('/[xX×]/u', $clean, 2);
                             if (count($pair) !== 2) {
                                 $errors[] = 'Invalid size value on row '.($globalIndex + 2).': '.$clean;
                                 continue;
@@ -355,6 +388,9 @@ class SpreadsheetImporter
             'design' => $lookup['designs'] ?? $lookup['design'] ?? null,
             'shade' => $lookup['shades'] ?? $lookup['shade'] ?? null,
             'size' => $lookup['sizes'] ?? $lookup['size'] ?? null,
+            'description' => $lookup['description'] ?? null,
+            'accessories' => $lookup['accessories'] ?? null,
+            'starting_price' => $lookup['startingprice'] ?? null,
         ];
     }
 
