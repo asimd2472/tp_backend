@@ -130,6 +130,66 @@ $(function () {
         });
     }
 
+    const $twoFactorForm = $('#adminTwoFactorForm');
+
+    if ($twoFactorForm.length) {
+        const $submit = $('#loginSubmit');
+        const $alert = $('#loginAlert');
+
+        $twoFactorForm.on('submit', function (event) {
+            event.preventDefault();
+            $('#codeError').text('');
+            $('#code').removeClass('is-invalid');
+            $alert.addClass('d-none').text('');
+            $submit.prop('disabled', true).addClass('is-loading');
+
+            $.ajax({
+                url: $twoFactorForm.attr('action'),
+                method: 'POST',
+                data: $twoFactorForm.serialize(),
+                headers: {
+                    Accept: 'application/json',
+                    'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                }
+            }).done(function (response) {
+                if (response.recovery_codes && response.recovery_codes.length) {
+                    const $list = $('#recoveryCodeList').empty();
+
+                    response.recovery_codes.forEach(function (code) {
+                        $('<li>').append($('<code>').text(code)).appendTo($list);
+                    });
+
+                    $('#continueAfterSetup').attr('href', response.redirect);
+                    $('#authStepContent form, .two-factor-qr, .two-factor-secret-label, .two-factor-secret').hide();
+                    $('#recoveryCodes').prop('hidden', false);
+                    $('.login-heading h2').text('Save your recovery codes.');
+                    $('.login-heading p').text('Keep these somewhere safe. You will need one if you lose access to your authenticator.');
+
+                    return;
+                }
+
+                window.location.assign(response.redirect);
+            }).fail(function (xhr) {
+                const response = xhr.responseJSON || {};
+
+                if (response.errors && response.errors.code) {
+                    $('#code').addClass('is-invalid');
+                    $('#codeError').text(response.errors.code[0]);
+                }
+
+                $alert.text(response.message || 'We could not verify your code. Please try again.').removeClass('d-none');
+            }).always(function () {
+                $submit.prop('disabled', false).removeClass('is-loading');
+            });
+        });
+
+        $('#code').on('input', function () {
+            $(this).removeClass('is-invalid');
+            $('#codeError').text('');
+            $alert.addClass('d-none').text('');
+        });
+    }
+
     const $directorySearch = $('#directorySearch');
 
     if ($directorySearch.length) {

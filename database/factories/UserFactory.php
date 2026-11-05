@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use PragmaRX\Google2FA\Google2FA;
 use Spatie\Permission\Models\Permission;
 
 /**
@@ -70,6 +71,14 @@ class UserFactory extends Factory
             }
 
             $user->givePermissionTo($permissions);
+
+            if (! $user->two_factor_secret && ! $user->two_factor_confirmed_at) {
+                $user->two_factor_secret = (new Google2FA)->generateSecretKey();
+                $user->two_factor_confirmed_at = now();
+                $user->save();
+            }
+
+            session()->put('admin_two_factor_verified', true);
         });
     }
 }

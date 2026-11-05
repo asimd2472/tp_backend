@@ -20,6 +20,16 @@ Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.
 Route::post('/admin/login', [AdminAuthController::class, 'store'])
     ->middleware('throttle:10,1')
     ->name('admin.login.store');
+Route::get('/admin/two-factor/setup', [AdminAuthController::class, 'setup'])
+    ->name('admin.two-factor.setup');
+Route::post('/admin/two-factor/setup', [AdminAuthController::class, 'confirmSetup'])
+    ->middleware('throttle:10,1')
+    ->name('admin.two-factor.setup.confirm');
+Route::get('/admin/two-factor/challenge', [AdminAuthController::class, 'challenge'])
+    ->name('admin.two-factor.challenge');
+Route::post('/admin/two-factor/challenge', [AdminAuthController::class, 'verifyChallenge'])
+    ->middleware('throttle:10,1')
+    ->name('admin.two-factor.challenge.verify');
 
 Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(function () {
     Route::get('/', DashboardController::class)->middleware('can:view_dashboard')->name('dashboard');

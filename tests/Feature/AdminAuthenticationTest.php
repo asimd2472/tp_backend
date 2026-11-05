@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Crypt;
+use PragmaRX\Google2FA\Google2FA;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -17,10 +19,24 @@ class AdminAuthenticationTest extends TestCase
         $this->get(route('admin.login'))
             ->assertOk()
             ->assertSee('TATA Pravesh')
-            ->assertSee('Sign in securely');
+            ->assertSee('Continue securely');
     }
 
     public function test_admin_can_sign_in_and_open_the_dashboard(): void
+    {
+        $admin = User::factory()->admin()->create([
+            'password' => 'a-secure-password',
+        ]);
+
+        $this->completeSignIn($admin, 'a-secure-password', route('admin.dashboard'));
+
+        $this->get(route('admin.dashboard'))
+            ->assertOk()
+            ->assertSee('Account directory')
+            ->assertSee($admin->email);
+    }
+
+    public function test_admin_sign_in_requires_authenticator_verification(): void
     {
         $admin = User::factory()->admin()->create([
             'password' => 'a-secure-password',
@@ -31,12 +47,17 @@ class AdminAuthenticationTest extends TestCase
             'password' => 'a-secure-password',
         ])
             ->assertOk()
+            ->assertJsonPath('redirect', route('admin.two-factor.challenge'));
+
+        $this->assertGuest();
+        $this->get(route('admin.dashboard'))->assertRedirect(route('admin.login'));
+
+        $this->postJson(route('admin.two-factor.challenge.verify'), [
+            'code' => (new Google2FA)->getCurrentOtp($admin->two_factor_secret),
+        ])->assertOk()
             ->assertJsonPath('redirect', route('admin.dashboard'));
 
-        $this->get(route('admin.dashboard'))
-            ->assertOk()
-            ->assertSee('Account directory')
-            ->assertSee($admin->email);
+        $this->get(route('admin.dashboard'))->assertOk();
     }
 
     public function test_standard_members_cannot_sign_in_to_the_admin_panel(): void
@@ -77,7 +98,7 @@ class AdminAuthenticationTest extends TestCase
     public function test_user_with_role_can_access_admin_dashboard(): void
     {
         $role = Role::create(['name' => 'super-admin', 'guard_name' => 'web']);
-        $role->givePermissionTo(Permission::findByName('view_dashboard'));
+        $role->givePermissionTo(Permission::findOrCreate('view_dashboard', 'web'));
         $admin = User::factory()->create([
             'email' => 'role.admin@example.com',
             'password' => 'a-secure-password',
@@ -85,12 +106,7 @@ class AdminAuthenticationTest extends TestCase
         ]);
         $admin->assignRole($role);
 
-        $this->postJson(route('admin.login.store'), [
-            'email' => $admin->email,
-            'password' => 'a-secure-password',
-        ])
-            ->assertOk()
-            ->assertJsonPath('redirect', route('admin.dashboard'));
+        $this->completeSignIn($admin, 'a-secure-password', route('admin.dashboard'));
 
         $this->get(route('admin.dashboard'))
             ->assertOk()
@@ -104,5 +120,30 @@ class AdminAuthenticationTest extends TestCase
             ->assertOk()
             ->assertSee('Role management')
             ->assertSee('Create Role');
+    }
+
+    private function completeSignIn(User $user, string $password, string $redirect): void
+    {
+        $response = $this->postJson(route('admin.login.store'), [
+            'email' => $user->email,
+            'password' => $password,
+        ])->assertOk();
+
+        if ($user->two_factor_secret && $user->two_factor_confirmed_at) {
+            $response->assertJsonPath('redirect', route('admin.two-factor.challenge'));
+
+            $response = $this->postJson(route('admin.two-factor.challenge.verify'), [
+                'code' => (new Google2FA)->getCurrentOtp($user->two_factor_secret),
+            ]);
+        } else {
+            $response->assertJsonPath('redirect', route('admin.two-factor.setup'));
+            $this->get(route('admin.two-factor.setup'))->assertOk();
+
+            $response = $this->postJson(route('admin.two-factor.setup.confirm'), [
+                'code' => (new Google2FA)->getCurrentOtp(Crypt::decryptString(session('admin_two_factor.secret'))),
+            ]);
+        }
+
+        $response->assertOk()->assertJsonPath('redirect', $redirect);
     }
 }

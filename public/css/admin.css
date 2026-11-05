@@ -373,6 +373,17 @@ a { color: inherit; text-decoration: none; }
 .size-edit-form .form-input { width: 94px; min-height: 35px; padding: 5px 8px; font-size: 11px; }
 .size-edit-form > span:not(.size-unit) { color: #819198; }
 .size-unit { color: #84949b; font-size: 10px; }
+.two-factor-qr { display: grid; place-items: center; margin: 0 auto 18px; padding: 10px; border: 1px solid #e8edf0; border-radius: 12px; background: #fff; }
+.two-factor-qr img { display: block; max-width: 100%; height: auto; }
+.two-factor-secret-label { margin: 0 0 7px; color: #76858e; font-size: 11px; }
+.two-factor-secret { display: block; margin-bottom: 20px; padding: 10px 12px; border: 1px dashed #cbd9dc; border-radius: 8px; background: #f2f7f7; color: #203747; text-align: center; font-size: 13px; letter-spacing: .12em; overflow-wrap: anywhere; }
+.two-factor-code.form-control { padding-right: 14px; text-align: center; font-size: 19px; font-weight: 700; letter-spacing: .3em; }
+.two-factor-recovery { margin-top: 16px; }
+.two-factor-recovery strong { color: #1a3445; font-size: 14px; }
+.two-factor-recovery p { margin: 6px 0 12px; color: #76858e; font-size: 11px; line-height: 1.6; }
+.two-factor-recovery ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 0 0 18px; padding: 0; list-style: none; }
+.two-factor-recovery li { padding: 8px; border: 1px solid #e8edf0; border-radius: 6px; background: #fff; text-align: center; }
+.two-factor-recovery li code { color: #203747; font-size: 12px; }
 
 @media (max-width: 1120px) {
     .dashboard-content { padding-right: 25px; padding-left: 25px; }
