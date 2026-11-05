@@ -305,8 +305,8 @@ class WindowCatalogTest extends TestCase
         $file = $temporaryFile.'.csv';
         rename($temporaryFile, $file);
         $spreadsheet = <<<'CSV'
-Product Name,Models,Shades,Sizes,Description,Accessories,Starting Price
-Import Window,Vista,Oak,900x1200,Window description,Glass and handles,32000
+Product Name,Category,Models,Shades,Sizes,Description,Accessories,Starting Price
+Import Window,Windows,Vista,Oak,900x1200,Window description,Glass and handles,32000
 CSV;
         file_put_contents($file, $spreadsheet);
 
@@ -322,15 +322,22 @@ CSV;
             $this->assertSame('32000.00', $shade->starting_price);
 
             file_put_contents($file, str_replace(
-                ['Window description', 'Glass and handles', '32000'],
-                ['Updated window description', 'Updated accessories', '34000'],
+                ['Import Window,Windows,Vista,Oak,900x1200', 'Window description', 'Glass and handles', '32000'],
+                ['IMPORT WINDOW,Interior windows,VISTA,OAK,"900x1200;1000x1200"', 'Updated window description', 'Updated accessories', '34000'],
                 $spreadsheet,
             ));
-            $importer->importFromFile($file);
+            $result = $importer->importFromFile($file);
 
+            $this->assertSame([], $result['errors']);
             $this->assertSame('Updated window description', $model->fresh()->description);
             $this->assertSame('Updated accessories', $model->fresh()->accessories);
+            $this->assertSame('VISTA', $model->fresh()->name);
             $this->assertSame('34000.00', $shade->fresh()->starting_price);
+            $this->assertSame('OAK', $shade->fresh()->name);
+            $this->assertSame(2, $shade->sizes()->count());
+            $this->assertSame(1, WindowProduct::query()->count());
+            $this->assertSame('IMPORT WINDOW', WindowProduct::query()->firstOrFail()->name);
+            $this->assertSame('Interior windows', WindowProduct::query()->firstOrFail()->category);
         } finally {
             unlink($file);
         }

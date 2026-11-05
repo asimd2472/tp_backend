@@ -51,37 +51,66 @@ class SpreadsheetImporter
                     $productKey = $this->cacheKey($productName);
 
                     if (! isset($productCache[$productKey])) {
-                        $product = Product::query()->firstOrCreate([
+                        $product = Product::query()->firstOrNew([
                             'slug' => $this->slugify($productName),
-                        ], [
-                            'name' => $productName,
-                            'category' => $normalized['category'] ?? null,
-                            'model' => null,
-                            'starting_price' => 0,
-                            'description' => null,
                         ]);
+                        $product->name = $productName;
+                        $category = trim((string) ($normalized['category'] ?? ''));
+                        if ($category !== '') {
+                            $product->category = $category;
+                        }
+                        if (! $product->exists) {
+                            $product->model ??= null;
+                            $product->starting_price ??= 0;
+                            $product->description ??= null;
+                        }
+                        $product->save();
 
                         $productCache[$productKey] = $product;
                         $products++;
                     }
 
                     $product = $productCache[$productKey];
+                    $productChanged = false;
+                    if ($product->name !== $productName) {
+                        $product->name = $productName;
+                        $productChanged = true;
+                    }
+                    $category = trim((string) ($normalized['category'] ?? ''));
+                    if ($category !== '' && $product->category !== $category) {
+                        $product->category = $category;
+                        $productChanged = true;
+                    }
+                    if ($productChanged) {
+                        $product->save();
+                    }
+
                     $modelKey = $product->getKey().':'.$this->cacheKey($modelName !== '' ? $modelName : 'Default');
 
                     if (! isset($productCache[$modelKey])) {
-                        $productCache[$modelKey] = $product->models()->firstOrCreate([
-                            'name' => $modelName !== '' ? $modelName : 'Default',
-                        ], [
-                            'slug' => $this->buildModelSlug($productName, $modelName),
-                            'starting_price' => 0,
-                            'description' => null,
-                            'accessories' => null,
-                            'is_active' => true,
-                        ]);
+                        $resolvedModelName = $modelName !== '' ? $modelName : 'Default';
+                        $model = $product->models()
+                            ->whereRaw('LOWER(TRIM(name)) = ?', [$this->cacheKey($resolvedModelName)])
+                            ->first();
+                        if (! $model) {
+                            $model = $product->models()->make([
+                                'name' => $resolvedModelName,
+                                'slug' => $this->buildModelSlug($productName, $modelName),
+                                'starting_price' => 0,
+                                'description' => null,
+                                'accessories' => null,
+                                'is_active' => true,
+                            ]);
+                            $model->save();
+                        }
+                        $productCache[$modelKey] = $model;
                     }
 
                     $model = $productCache[$modelKey];
-                    $modelChanged = false;
+                    $modelChanged = $model->name !== ($modelName !== '' ? $modelName : 'Default');
+                    if ($modelChanged) {
+                        $model->name = $modelName !== '' ? $modelName : 'Default';
+                    }
                     foreach (['description', 'accessories'] as $attribute) {
                         $value = trim((string) ($normalized[$attribute] ?? ''));
                         if ($value !== '' && $model->{$attribute} !== $value) {
@@ -107,17 +136,28 @@ class SpreadsheetImporter
                     if ($designName !== '') {
                         $designKey = $model->getKey().':'.$this->cacheKey($designName);
                         if (! isset($designCache[$designKey])) {
-                            $designCache[$designKey] = $model->designs()->firstOrCreate([
-                                'name' => $designName,
-                            ], [
-                                'product_id' => $product->id,
-                                'product_model_id' => $model->id,
-                                'code' => null,
-                                'starting_price' => null,
-                                'sort_order' => 0,
-                            ]);
+                            $design = $model->designs()
+                                ->whereRaw('LOWER(TRIM(name)) = ?', [$this->cacheKey($designName)])
+                                ->first();
+                            if (! $design) {
+                                $design = $model->designs()->make([
+                                    'product_id' => $product->id,
+                                    'name' => $designName,
+                                    'code' => null,
+                                    'starting_price' => null,
+                                    'sort_order' => 0,
+                                ]);
+                                $design->save();
+                            }
+                            $designCache[$designKey] = $design;
                         }
                         $design = $designCache[$designKey];
+                        $design->name = $designName;
+                        $designCode = trim((string) ($normalized['code'] ?? ''));
+                        if ($designCode !== '') {
+                            $design->code = $designCode;
+                        }
+                        $design->save();
                         $designs++;
 
                         $shadeName = trim((string) ($normalized['shade'] ?? ''));
@@ -126,20 +166,29 @@ class SpreadsheetImporter
                             $shadeKey = $design->getKey().':'.$this->cacheKey($shadeName);
                             if (! isset($shadeCache[$shadeKey])) {
                                 $colorHex = $this->resolveShadeColor($shadeName, $shadeColors);
-                                $shade = $design->shades()->firstOrCreate([
-                                    'name' => $shadeName,
-                                ], [
-                                    'color_hex' => $colorHex,
-                                    'starting_price' => null,
-                                    'sort_order' => 0,
-                                ]);
+                                $shade = $design->shades()
+                                    ->whereRaw('LOWER(TRIM(name)) = ?', [$this->cacheKey($shadeName)])
+                                    ->first();
+                                if (! $shade) {
+                                    $shade = $design->shades()->make([
+                                        'name' => $shadeName,
+                                        'color_hex' => $colorHex,
+                                        'starting_price' => null,
+                                        'sort_order' => 0,
+                                    ]);
+                                }
+                                $shade->name = $shadeName;
                                 if ($shade->color_hex !== $colorHex) {
                                     $shade->color_hex = $colorHex;
-                                    $shade->save();
                                 }
+                                $shade->save();
                                 $shadeCache[$shadeKey] = $shade;
                             }
                             $shade = $shadeCache[$shadeKey];
+                            if ($shade->name !== $shadeName) {
+                                $shade->name = $shadeName;
+                                $shade->save();
+                            }
                             if ($startingPrice !== null
                                 && ($shade->starting_price === null || (float) $shade->starting_price !== $startingPrice)) {
                                 $shade->starting_price = $startingPrice;
@@ -391,6 +440,7 @@ class SpreadsheetImporter
             'description' => $lookup['description'] ?? null,
             'accessories' => $lookup['accessories'] ?? null,
             'starting_price' => $lookup['startingprice'] ?? null,
+            'code' => $lookup['designcode'] ?? $lookup['code'] ?? null,
         ];
     }
 

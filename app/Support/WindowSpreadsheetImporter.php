@@ -101,31 +101,60 @@ class WindowSpreadsheetImporter
                 $productKey = mb_strtolower($row['product']);
                 if (! isset($productCache[$productKey])) {
                     $slug = $this->productSlug($row['product']);
-                    $product = WindowProduct::query()->firstOrCreate(['slug' => $slug], [
-                        'name' => $row['product'],
-                        'category' => $row['category'] ?: null,
-                        'starting_price' => 0,
-                    ]);
+                    $product = WindowProduct::query()->firstOrNew(['slug' => $slug]);
+                    $product->name = $row['product'];
+                    if ($row['category'] !== null && trim((string) $row['category']) !== '') {
+                        $product->category = trim((string) $row['category']);
+                    }
+                    if (! $product->exists) {
+                        $product->category ??= null;
+                        $product->starting_price ??= 0;
+                    }
+                    $product->save();
                     $productCache[$productKey] = $product;
                     $counts['products'] += (int) $product->wasRecentlyCreated;
                 }
 
                 $product = $productCache[$productKey];
+                $productChanged = false;
+                if ($product->name !== $row['product']) {
+                    $product->name = $row['product'];
+                    $productChanged = true;
+                }
+                if ($row['category'] !== null && trim((string) $row['category']) !== ''
+                    && $product->category !== trim((string) $row['category'])) {
+                    $product->category = trim((string) $row['category']);
+                    $productChanged = true;
+                }
+                if ($productChanged) {
+                    $product->save();
+                }
+
                 $modelKey = $product->getKey().':'.mb_strtolower($row['model']);
                 if (! isset($modelCache[$modelKey])) {
-                    $model = $product->models()->firstOrCreate(['name' => $row['model']], [
-                        'slug' => $this->uniqueSlug($row['product'].' '.$row['model'], WindowModel::class),
-                        'starting_price' => 0,
-                        'description' => $row['description'] !== '' ? $row['description'] : null,
-                        'accessories' => $row['accessories'] !== '' ? $row['accessories'] : null,
-                        'is_active' => true,
-                    ]);
+                    $model = $product->models()
+                        ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($row['model']))])
+                        ->first();
+                    if (! $model) {
+                        $model = $product->models()->make([
+                            'name' => $row['model'],
+                            'slug' => $this->uniqueSlug($row['product'].' '.$row['model'], WindowModel::class),
+                            'starting_price' => 0,
+                            'description' => null,
+                            'accessories' => null,
+                            'is_active' => true,
+                        ]);
+                        $model->save();
+                    }
                     $modelCache[$modelKey] = $model;
                     $counts['models'] += (int) $model->wasRecentlyCreated;
                 }
 
                 $model = $modelCache[$modelKey];
-                $modelChanged = false;
+                $modelChanged = $model->name !== $row['model'];
+                if ($modelChanged) {
+                    $model->name = $row['model'];
+                }
                 foreach (['description', 'accessories'] as $attribute) {
                     if ($row[$attribute] !== '' && $model->{$attribute} !== $row[$attribute]) {
                         $model->{$attribute} = $row[$attribute];
@@ -143,19 +172,31 @@ class WindowSpreadsheetImporter
                 $shadeKey = $model->getKey().':'.mb_strtolower($row['shade']);
                 if (! isset($shadeCache[$shadeKey])) {
                     $color = $this->resolveShadeColor($row['shade'], $shadeColors);
-                    $shade = $model->shades()->firstOrCreate(['name' => $row['shade']], [
-                        'color_hex' => $color,
-                        'starting_price' => $row['starting_price'],
-                        'sort_order' => 0,
-                    ]);
-                    if ($shade->color_hex !== $color) {
-                        $shade->update(['color_hex' => $color]);
+                    $shade = $model->shades()
+                        ->whereRaw('LOWER(TRIM(name)) = ?', [mb_strtolower(trim($row['shade']))])
+                        ->first();
+                    if (! $shade) {
+                        $shade = $model->shades()->make([
+                            'name' => $row['shade'],
+                            'color_hex' => $color,
+                            'starting_price' => $row['starting_price'],
+                            'sort_order' => 0,
+                        ]);
                     }
+                    $shade->name = $row['shade'];
+                    if ($shade->color_hex !== $color) {
+                        $shade->color_hex = $color;
+                    }
+                    $shade->save();
                     $shadeCache[$shadeKey] = $shade;
                     $counts['shades'] += (int) $shade->wasRecentlyCreated;
                 }
 
                 $shade = $shadeCache[$shadeKey];
+                if ($shade->name !== $row['shade']) {
+                    $shade->name = $row['shade'];
+                    $shade->save();
+                }
                 if ($row['starting_price'] !== null
                     && ($shade->starting_price === null || (float) $shade->starting_price !== $row['starting_price'])) {
                     $shade->starting_price = $row['starting_price'];

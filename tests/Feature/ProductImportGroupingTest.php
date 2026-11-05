@@ -129,6 +129,48 @@ CSV;
         }
     }
 
+    public function test_reimport_updates_existing_product_variants_and_adds_new_sizes_without_duplicates(): void
+    {
+        $file = $this->temporaryCsvPath();
+        $spreadsheet = <<<'CSV'
+Product Name,Category,Models,Designs,Design Code,Shades,Sizes,Description,Accessories,Starting Price
+Update Doors,Doors,Classic,E01,E-1,Oak,900x2000,Door description,Door accessories,10000
+CSV;
+        file_put_contents($file, $spreadsheet);
+
+        try {
+            $importer = new SpreadsheetImporter;
+            $importer->importFromFile($file);
+            file_put_contents($file, <<<'CSV'
+Product Name,Category,Models,Designs,Design Code,Shades,Sizes,Description,Accessories,Starting Price
+UPDATE DOORS,Interior doors,CLASSIC,e01,E-2,OAK,"900x2000;910x2000",Updated description,Updated accessories,12000
+CSV
+            );
+            $result = $importer->importFromFile($file);
+        } finally {
+            unlink($file);
+        }
+
+        $product = Product::query()->where('slug', 'update-doors')->firstOrFail();
+        $model = $product->models()->firstOrFail();
+        $design = $model->designs()->firstOrFail();
+        $shade = $design->shades()->firstOrFail();
+
+        $this->assertSame([], $result['errors']);
+        $this->assertSame(1, Product::query()->count());
+        $this->assertSame('UPDATE DOORS', $product->name);
+        $this->assertSame('Interior doors', $product->category);
+        $this->assertSame(1, $product->models()->count());
+        $this->assertSame('CLASSIC', $model->name);
+        $this->assertSame('Updated description', $model->description);
+        $this->assertSame('Updated accessories', $model->accessories);
+        $this->assertSame('e01', $design->name);
+        $this->assertSame('E-2', $design->code);
+        $this->assertSame('OAK', $shade->name);
+        $this->assertSame('12000.00', $shade->starting_price);
+        $this->assertSame(2, $shade->sizes()->count());
+    }
+
     private function temporaryCsvPath(): string
     {
         $temporaryFile = tempnam(sys_get_temp_dir(), 'products');
