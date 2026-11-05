@@ -10,57 +10,72 @@
         body {
             color: #23364d;
             font-family: DejaVu Sans, sans-serif;
-            font-size: 10px;
-            line-height: 1.45;
+            font-size: 9px;
+            line-height: 1.35;
             margin: 0;
         }
 
         .header {
             background: #194d88;
             color: #fff;
-            padding: 18px 34px;
+            padding: 11px 35px;
             width: 100%;
         }
 
         .brand {
-            font-size: 17px;
+            font-size: 15px;
             font-weight: bold;
-            letter-spacing: .5px;
+            letter-spacing: .4px;
         }
 
         .brand-note {
-            font-size: 9px;
+            font-size: 8px;
             text-align: right;
         }
 
         .content {
-            padding: 24px 38px 30px;
+            padding: 15px 38px 20px;
         }
 
         h1 {
             color: #244e80;
-            font-size: 17px;
+            font-size: 14px;
             margin: 0 0 3px;
         }
 
         .booking-meta {
             color: #64748b;
             font-size: 8px;
-            margin-bottom: 12px;
+            margin-bottom: 9px;
         }
 
         .notice {
-            border: 1px solid #244e80;
+            background: #eef5fc;
+            border: 1px solid #9bb9d8;
             color: #244e80;
+            margin-bottom: 10px;
+            padding: 7px 9px;
+        }
+
+        .notice-title {
             font-weight: bold;
-            margin-bottom: 14px;
-            padding: 8px 10px;
+            margin: 4px 0 2px;
+        }
+
+        .notice p {
+            margin: 0;
+        }
+
+        .notice ul {
+            margin: 2px 0 0;
+            padding-left: 14px;
         }
 
         h2 {
             color: #244e80;
-            font-size: 12px;
-            margin: 13px 0 5px;
+            font-size: 10px;
+            margin: 9px 0 3px;
+            text-transform: none;
         }
 
         .details,
@@ -72,7 +87,7 @@
         .details td,
         .project-details td {
             border-bottom: 1px solid #cbd5e1;
-            padding: 4px 2px;
+            padding: 3px 2px;
             vertical-align: top;
         }
 
@@ -89,34 +104,34 @@
         .product {
             border: 1px solid #cbd5e1;
             border-collapse: collapse;
-            margin: 6px 0;
+            margin: 5px 0;
             page-break-inside: avoid;
             width: 100%;
         }
 
         .product-image {
-            padding: 7px;
+            padding: 5px 7px;
             text-align: center;
-            vertical-align: top;
-            width: 88px;
+            vertical-align: middle;
+            width: 62px;
         }
 
         .product-image img {
-            height: 92px;
+            height: 72px;
             object-fit: contain;
-            width: 72px;
+            width: 58px;
         }
 
         .product-info {
-            padding: 7px 9px 7px 2px;
-            vertical-align: top;
+            padding: 5px 8px 5px 2px;
+            vertical-align: middle;
         }
 
         .product-name {
             color: #244e80;
-            font-size: 11px;
+            font-size: 9px;
             font-weight: bold;
-            margin-bottom: 3px;
+            margin-bottom: 2px;
         }
 
         .product-info p {
@@ -127,12 +142,47 @@
             font-weight: bold;
         }
 
+        .terms {
+            color: #334155;
+            font-size: 8px;
+            margin-top: 9px;
+        }
+
+        .terms p {
+            margin: 2px 0;
+        }
+
+        .thank-you {
+            color: #244e80;
+            font-weight: bold;
+        }
+
+        .contact-note {
+            color: #64748b;
+            font-size: 7px;
+            margin-top: 4px;
+        }
+
+        .important-note {
+            border: 1px solid #cbd5e1;
+            color: #475569;
+            font-size: 7px;
+            margin-top: 6px;
+            padding: 5px 7px;
+        }
+
+        .important-note strong {
+            color: #244e80;
+            display: block;
+            margin-bottom: 2px;
+        }
+
         .footer {
             border-top: 1px solid #cbd5e1;
             color: #64748b;
-            font-size: 8px;
-            margin-top: 15px;
-            padding-top: 7px;
+            font-size: 7px;
+            margin-top: 8px;
+            padding-top: 5px;
             text-align: center;
         }
     </style>
@@ -146,18 +196,24 @@
     </table>
 
     <main class="content">
-        <h1>Booking &amp; Demo Request: Details Submitted</h1>
+        <h1>Tata Pravesh | Your Pre-Booking Confirmation &amp; Demo Request</h1>
         <div class="booking-meta">
-            Booking ID: {{ $bookingNumber }}
+            Pre-Booking ID: {{ $bookingNumber }}
             &nbsp; | &nbsp;
             Submitted on: {{ $submittedAt->format('d F Y') }}
         </div>
 
         <div class="notice">
-            Our executive will contact you within 24 hours to schedule your demo. No payment is needed now.
+            <p><strong>Our executive will contact you within 24 hours to schedule your demo.</strong></p>
+            <p class="notice-title">Payment &amp; Order Process:</p>
+            <ul>
+                <li>No payment is needed at the pre-booking stage.</li>
+                <li>Final pricing, specifications, and product selection will be confirmed after discussion with your authorized Tata Pravesh dealer.</li>
+                <li>Payment terms for your order will be shared by the dealer before confirmation.</li>
+            </ul>
         </div>
 
-        <h2>Your details</h2>
+        <h2>Your Details</h2>
         <table class="details">
             <tr>
                 <td class="label">Name</td>
@@ -173,7 +229,7 @@
             </tr>
         </table>
 
-        <h2>Delivery address</h2>
+        <h2>Delivery Address</h2>
         <table class="details">
             <tr>
                 <td class="label">Address</td>
@@ -185,7 +241,7 @@
             </tr>
         </table>
 
-        <h2>Project details</h2>
+        <h2>Project Details</h2>
         <table class="project-details">
             <tr>
                 <td class="label">Construction stage</td>
@@ -197,7 +253,7 @@
             </tr>
         </table>
 
-        <h2>Products selected</h2>
+        <h2>Products Selected</h2>
         @foreach ($products as $index => $product)
             <table class="product">
                 <tr>
@@ -219,7 +275,18 @@
             </table>
         @endforeach
 
-        <div class="footer">Thank you for choosing TATA PRAVESH.</div>
+        <div class="terms">
+            <h2>Terms &amp; Conditions</h2>
+            <p>Accepted at the time of submission.</p>
+            <p class="thank-you">Thank you for choosing Tata Pravesh. Our executive will contact you within 24 hours.</p>
+            <p class="contact-note">Helpline: 1800-419-200 | This is a booking request; no payment has been taken.</p>
+            <div class="important-note">
+                <strong>Important Note:</strong>
+                This document confirms your pre-booking request only. It is not a final product order or price confirmation. Final product selection, specifications, accessories, pricing, and applicable services will be confirmed after discussion with an authorized Tata Pravesh dealer. Offerings and pricing may vary by location and customer requirements.
+            </div>
+        </div>
+
+        <div class="footer">TATA PRAVESH &nbsp; | &nbsp; Doors &amp; Windows by Tata Steel</div>
     </main>
 </body>
 </html>
