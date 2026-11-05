@@ -9,6 +9,7 @@ use App\Http\Controllers\Admin\FrenchDoorController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductImportController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\UserRoleController;
 use App\Http\Controllers\Admin\WindowController;
 use App\Http\Controllers\Admin\WindowImportController;
@@ -39,7 +40,10 @@ Route::prefix('admin')->name('admin.')->middleware(['auth', 'admin'])->group(fun
     });
 
     Route::middleware('can:manage_users')->group(function () {
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
         Route::post('/users/{user}/roles', [UserRoleController::class, 'update'])->name('users.roles.update');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
     });
 
     Route::middleware('can:manage_dealers')->group(function () {

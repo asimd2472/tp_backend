@@ -12,7 +12,12 @@
                         <h1>Role management<span>.</span></h1>
                         <p>Manage permissions, assign roles, and keep workspace access secure.</p>
                     </div>
-                    <a href="#create-role" class="btn btn-primary btn-cta">Create role</a>
+                    <div class="d-flex flex-wrap gap-2">
+                        @can('manage_users')
+                            <a href="#create-user" class="btn btn-outline-primary btn-cta">Create user</a>
+                        @endcan
+                        <a href="#create-role" class="btn btn-primary btn-cta">Create role</a>
+                    </div>
                 </section>
 
                 @if (session('success'))
@@ -137,7 +142,48 @@
                     </div>
                 </section>
 
-                <section class="panel-card role-assignment-panel">
+                <section class="panel-card role-assignment-panel" id="user-access">
+                    @can('manage_users')
+                        <div class="panel-heading" id="create-user">
+                            <div><span class="panel-eyebrow">NEW USER</span><h2>Create user</h2></div>
+                        </div>
+                        <form action="{{ route('admin.users.store') }}" method="POST" class="role-form mb-4">
+                            @csrf
+                            <div class="row g-3">
+                                <div class="col-md-6 form-field">
+                                    <label for="new-user-name" class="form-label">Name</label>
+                                    <input id="new-user-name" name="user_name" type="text" class="form-control form-input" value="{{ old('user_name') }}" required>
+                                </div>
+                                <div class="col-md-6 form-field">
+                                    <label for="new-user-email" class="form-label">Email</label>
+                                    <input id="new-user-email" name="user_email" type="email" class="form-control form-input" value="{{ old('user_email') }}" required>
+                                </div>
+                                <div class="col-md-6 form-field">
+                                    <label for="new-user-phone" class="form-label">Phone</label>
+                                    <input id="new-user-phone" name="user_phone" type="text" class="form-control form-input" value="{{ old('user_phone') }}">
+                                </div>
+                                <div class="col-md-6 form-field">
+                                    <label for="new-user-password" class="form-label">Password</label>
+                                    <input id="new-user-password" name="user_password" type="password" class="form-control form-input" minlength="8" autocomplete="new-password" required>
+                                </div>
+                                <div class="col-md-6 form-field">
+                                    <label for="new-user-password-confirmation" class="form-label">Confirm password</label>
+                                    <input id="new-user-password-confirmation" name="user_password_confirmation" type="password" class="form-control form-input" minlength="8" autocomplete="new-password" required>
+                                </div>
+                                <div class="col-12 form-field">
+                                    <label for="new-user-roles" class="form-label">Assign roles (optional)</label>
+                                    <select id="new-user-roles" name="user_roles[]" class="form-select" multiple size="4">
+                                        @foreach ($roles as $role)
+                                            <option value="{{ $role->name }}" {{ in_array($role->name, old('user_roles', []), true) ? 'selected' : '' }}>{{ $role->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <small class="text-muted">Use Ctrl (Windows) or Command (Mac) to select multiple roles.</small>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary mt-3">Create user</button>
+                        </form>
+                    @endcan
+
                     <div class="directory-heading">
                         <div><span class="panel-eyebrow">USER ACCESS</span><h2>Role assignment matrix</h2><p>Assign and review access for each workspace member.</p></div>
                         <div class="directory-tools">
@@ -151,9 +197,11 @@
                                 <tr>
                                     <th scope="col">USER</th>
                                     <th scope="col">EMAIL</th>
+                                    <th scope="col">PHONE</th>
                                     <th scope="col">CURRENT ROLES</th>
                                     @can('manage_users')
                                         <th scope="col">UPDATE ROLES</th>
+                                        <th scope="col">ACTIONS</th>
                                     @endcan
                                 </tr>
                             </thead>
@@ -167,6 +215,7 @@
                                             </div>
                                         </td>
                                         <td class="email-cell">{{ $user->email }}</td>
+                                        <td>{{ $user->phone ?: '—' }}</td>
                                         <td>
                                             @forelse ($user->roles as $role)
                                                 <span class="role-pill role-admin"><span></span>{{ $role->name }}</span>
@@ -186,10 +235,47 @@
                                                     <button type="submit" class="btn btn-outline-primary btn-sm">Save</button>
                                                 </form>
                                             </td>
+                                            <td>
+                                                <details>
+                                                    <summary class="btn btn-outline-secondary btn-sm">Edit user</summary>
+                                                    <form action="{{ route('admin.users.update', $user) }}" method="POST" class="role-form-inline mt-2">
+                                                        @csrf
+                                                        @method('PUT')
+                                                        <div class="form-field compact-field">
+                                                            <label for="user-name-{{ $user->id }}" class="form-label">Name</label>
+                                                            <input id="user-name-{{ $user->id }}" name="name" type="text" class="form-control form-input" value="{{ $user->name }}" required>
+                                                        </div>
+                                                        <div class="form-field compact-field">
+                                                            <label for="user-email-{{ $user->id }}" class="form-label">Email</label>
+                                                            <input id="user-email-{{ $user->id }}" name="email" type="email" class="form-control form-input" value="{{ $user->email }}" required>
+                                                        </div>
+                                                        <div class="form-field compact-field">
+                                                            <label for="user-phone-{{ $user->id }}" class="form-label">Phone</label>
+                                                            <input id="user-phone-{{ $user->id }}" name="phone" type="text" class="form-control form-input" value="{{ $user->phone }}">
+                                                        </div>
+                                                        <div class="form-field compact-field">
+                                                            <label for="user-password-{{ $user->id }}" class="form-label">New password (optional)</label>
+                                                            <input id="user-password-{{ $user->id }}" name="password" type="password" class="form-control form-input" minlength="8" autocomplete="new-password">
+                                                        </div>
+                                                        <div class="form-field compact-field">
+                                                            <label for="user-password-confirmation-{{ $user->id }}" class="form-label">Confirm new password</label>
+                                                            <input id="user-password-confirmation-{{ $user->id }}" name="password_confirmation" type="password" class="form-control form-input" minlength="8" autocomplete="new-password">
+                                                        </div>
+                                                        <button type="submit" class="btn btn-primary btn-sm">Save user</button>
+                                                    </form>
+                                                </details>
+                                                @unless (auth()->id() === $user->id)
+                                                    <form action="{{ route('admin.users.destroy', $user) }}" method="POST" class="mt-2" onsubmit="return confirm('Delete this user? This cannot be undone.');">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="btn btn-outline-danger btn-sm">Delete user</button>
+                                                    </form>
+                                                @endunless
+                                            </td>
                                         @endcan
                                     </tr>
                                 @empty
-                                    <tr><td colspan="4"><div class="empty-directory"><span class="empty-directory-icon">+</span><strong>No users found</strong><span>New workspace accounts will appear here.</span></div></td></tr>
+                                    <tr><td colspan="{{ auth()->user()->can('manage_users') ? 6 : 4 }}"><div class="empty-directory"><span class="empty-directory-icon">+</span><strong>No users found</strong><span>New workspace accounts will appear here.</span></div></td></tr>
                                 @endforelse
                             </tbody>
                         </table>
